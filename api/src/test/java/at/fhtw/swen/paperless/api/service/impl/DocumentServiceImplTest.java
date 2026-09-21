@@ -92,4 +92,11 @@ class DocumentServiceImplTest {
 
         assertThat(documentService.getAllDocuments()).containsExactly(dto);
     }
+
+    @Test
+    void deleteDocument_shouldInvokeRepository() {
+        UUID id = UUID.randomUUID();
+        documentService.deleteDocument(id);
+        verify(documentRepository).deleteById(id);
+    }
 }

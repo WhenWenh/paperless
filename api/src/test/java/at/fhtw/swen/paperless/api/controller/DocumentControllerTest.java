@@ -114,4 +114,11 @@ class DocumentControllerTest {
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.title").value("Title"));
     }
+
+    @Test
+    void deleteDocument_shouldReturn204() throws Exception {
+        UUID id = UUID.randomUUID();
+        mockMvc.perform(delete("/api/v1/documents/" + id))
+                .andExpect(status().isNoContent());
+    }
 }
