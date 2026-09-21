@@ -63,6 +63,22 @@ paths:
         "404":
           description: Document not found.
 
+    delete:
+      tags:
+        - Documents
+      summary: Delete a document
+      operationId: deleteDocument
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Document deleted.
+
 
 components:
   schemas:
