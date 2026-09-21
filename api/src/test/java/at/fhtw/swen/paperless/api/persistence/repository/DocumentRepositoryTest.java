@@ -33,4 +33,17 @@ class DocumentRepositoryTest {
         assertThat(found.getCreatedAt()).isNotNull();
         assertThat(found.getUpdatedAt()).isEqualTo(found.getCreatedAt());
     }
+
+    @Test
+    void delete_shouldRemoveDocument() {
+        Document doc = new Document();
+        doc.setTitle("ToDelete");
+        doc.setOriginalFilename("d.pdf");
+        doc.setContentType("application/pdf");
+        doc.setFileSize(1L);
+        Document saved = documentRepository.save(doc);
+
+        documentRepository.deleteById(saved.getId());
+        assertThat(documentRepository.findById(saved.getId())).isEmpty();
+    }
 }
