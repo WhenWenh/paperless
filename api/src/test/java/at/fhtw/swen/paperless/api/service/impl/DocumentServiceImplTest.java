@@ -10,7 +10,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -64,4 +66,30 @@ class DocumentServiceImplTest {
         verify(documentRepository).save(entity);
     }
 
+    @Test
+    void getDocument_shouldReturnEmptyWhenNotFound() {
+        UUID id = UUID.randomUUID();
+        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThat(documentService.getDocument(id)).isEmpty();
+    }
+
+    @Test
+    void getAllDocuments_shouldReturnMappedList() {
+        Document doc = new Document();
+        doc.setId(UUID.randomUUID());
+        DocumentDto dto = new DocumentDto(
+                doc.getId(),
+                "T",
+                "f",
+                "c",
+                1L,
+                null,
+                null
+        );
+        when(documentRepository.findAll()).thenReturn(List.of(doc));
+        when(documentMapper.toDto(doc)).thenReturn(dto);
+
+        assertThat(documentService.getAllDocuments()).containsExactly(dto);
+    }
 }
