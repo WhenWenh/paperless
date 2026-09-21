@@ -5,9 +5,14 @@ import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -25,5 +30,18 @@ public class DocumentServiceImpl implements DocumentService {
         Document saved = documentRepository.save(entity);
 
         return documentMapper.toDto(saved);
+    }
+
+    @Override
+    public List<DocumentDto> getAllDocuments() {
+        return documentRepository.findAll().stream()
+                .map(documentMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public Optional<DocumentDto> getDocument(UUID id) {
+        return documentRepository.findById(id)
+                .map(documentMapper::toDto);
     }
 }
