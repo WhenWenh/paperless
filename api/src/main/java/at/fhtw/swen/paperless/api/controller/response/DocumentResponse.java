@@ -10,6 +10,8 @@ public record DocumentResponse(
         String contentType,
         long fileSize,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        UUID tagId,
+        String tagName
 ) {
 }

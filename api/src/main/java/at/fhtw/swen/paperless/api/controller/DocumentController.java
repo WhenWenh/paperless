@@ -1,6 +1,7 @@
 package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.request.CreateDocumentRequest;
+import at.fhtw.swen.paperless.api.controller.request.UpdateDocumentTagRequest;
 import at.fhtw.swen.paperless.api.controller.response.DocumentResponse;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
@@ -35,6 +36,8 @@ public class DocumentController {
                 request.contentType(),
                 request.fileSize(),
                 null,
+                null,
+                request.tagId(),
                 null
         );
 
@@ -53,8 +56,13 @@ public class DocumentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
-        List<DocumentDto> documents = documentService.getAllDocuments();
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments(
+            @RequestParam(required = false) String tag
+    ) {
+        List<DocumentDto> documents =
+                tag == null
+                        ? documentService.getAllDocuments()
+                        : documentService.getDocumentsByTag(tag);
 
         return ResponseEntity.ok(
                 documents.stream()
@@ -69,6 +77,16 @@ public class DocumentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}/tag")
+    public ResponseEntity<DocumentResponse> updateDocumentTag(
+            @PathVariable UUID id,
+            @RequestBody UpdateDocumentTagRequest request
+    ) {
+        return documentService.updateDocumentTag(id, request.tagId())
+                .map(dto -> ResponseEntity.ok(toResponse(dto)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     private DocumentResponse toResponse(DocumentDto dto) {
         return new DocumentResponse(
                 dto.id(),
@@ -77,7 +95,9 @@ public class DocumentController {
                 dto.contentType(),
                 dto.fileSize(),
                 dto.createdAt(),
-                dto.updatedAt()
+                dto.updatedAt(),
+                dto.tagId(),
+                dto.tagName()
         );
     }
 }

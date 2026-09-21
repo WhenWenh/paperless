@@ -1,5 +1,6 @@
 package at.fhtw.swen.paperless.api.service.mapper;
 
+import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class DocumentMapperTest {
                 "application/pdf",
                 12345L,
                 Instant.now(),
-                Instant.now()
+                Instant.now(), null, null
         );
 
         // Act
@@ -70,4 +71,21 @@ class DocumentMapperTest {
         assertThat(entity.getUpdatedAt()).isNull();
     }
 
+    @Test
+    void toDto_shouldMapEntityWithTag() {
+        UUID tagId = UUID.randomUUID();
+        Tag tag = new Tag();
+        tag.setId(tagId);
+        tag.setName("Finance");
+
+        Document document = new Document();
+        document.setId(UUID.randomUUID());
+        document.setTitle("Test Document");
+        document.setTag(tag);
+
+        DocumentDto dto = mapper.toDto(document);
+
+        assertThat(dto.tagId()).isEqualTo(tagId);
+        assertThat(dto.tagName()).isEqualTo("Finance");
+    }
 }

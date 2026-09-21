@@ -1,5 +1,11 @@
 package at.fhtw.swen.paperless.api.service.impl;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
+import at.fhtw.swen.paperless.api.persistence.repository.TagRepository;
+import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
@@ -27,6 +33,9 @@ class DocumentServiceImplTest {
     @Mock
     private DocumentMapper documentMapper;
 
+    @Mock
+    private TagRepository tagRepository;
+
     @InjectMocks
     private DocumentServiceImpl documentService;
 
@@ -39,7 +48,7 @@ class DocumentServiceImplTest {
                 "application/pdf",
                 123L,
                 null,
-                null
+                null, null, null
         );
         Document entity = new Document();
         Document saved = new Document();
@@ -52,7 +61,7 @@ class DocumentServiceImplTest {
                 "application/pdf",
                 123L,
                 null,
-                null
+                null, null, null
         );
         when(documentMapper.toEntity(input)).thenReturn(entity);
         when(documentRepository.save(entity)).thenReturn(saved);
@@ -85,7 +94,7 @@ class DocumentServiceImplTest {
                 "c",
                 1L,
                 null,
-                null
+                null, null, null
         );
         when(documentRepository.findAll()).thenReturn(List.of(doc));
         when(documentMapper.toDto(doc)).thenReturn(dto);
@@ -98,5 +107,100 @@ class DocumentServiceImplTest {
         UUID id = UUID.randomUUID();
         documentService.deleteDocument(id);
         verify(documentRepository).deleteById(id);
+    }
+
+    @Test
+    void createDocument_withTag_shouldAttachTag() {
+        UUID tagId = UUID.randomUUID();
+        Tag tag = new Tag();
+        tag.setId(tagId);
+        tag.setName("Finance");
+        DocumentDto input = new DocumentDto(null, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, null);
+        Document entity = new Document();
+
+        when(documentMapper.toEntity(input)).thenReturn(entity);
+        when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
+        when(documentRepository.save(entity)).thenReturn(entity);
+
+        documentService.createDocument(input);
+
+        assertThat(entity.getTag()).isSameAs(tag);
+    }
+
+    @Test
+    void createDocument_withMissingTag_shouldThrowAndNotSave() {
+        UUID tagId = UUID.randomUUID();
+        DocumentDto input = new DocumentDto(null, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, null);
+
+        when(documentMapper.toEntity(input)).thenReturn(new Document());
+        when(tagRepository.findById(tagId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentService.createDocument(input))
+                .isInstanceOf(TagNotFoundException.class);
+        verify(documentRepository, never()).save(any());
+    }
+
+    @Test
+    void getDocumentsByTag_shouldReturnDocuments() {
+        Document doc = new Document();
+        DocumentDto dto = new DocumentDto(UUID.randomUUID(), "T", "f", "c", 1L, null, null, null, "Finance");
+
+        when(documentRepository.findByTag_Name("Finance")).thenReturn(List.of(doc));
+        when(documentMapper.toDto(doc)).thenReturn(dto);
+
+        assertThat(documentService.getDocumentsByTag("Finance")).containsExactly(dto);
+    }
+
+    @Test
+    void updateDocumentTag_withNull_shouldRemoveTag() {
+        UUID id = UUID.randomUUID();
+        Document doc = new Document();
+        doc.setTag(new Tag());
+
+        when(documentRepository.findById(id)).thenReturn(Optional.of(doc));
+        when(documentRepository.save(doc)).thenReturn(doc);
+        when(documentMapper.toDto(doc)).thenReturn(
+                new DocumentDto(id, "T", "f", "c", 1L, null, null, null, null));
+
+        assertThat(documentService.updateDocumentTag(id, null)).isPresent();
+        assertThat(doc.getTag()).isNull();
+    }
+
+    @Test
+    void updateDocumentTag_withTag_shouldAssignTag() {
+        UUID id = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+        Document doc = new Document();
+        Tag tag = new Tag();
+        tag.setId(tagId);
+
+        when(documentRepository.findById(id)).thenReturn(Optional.of(doc));
+        when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
+        when(documentRepository.save(doc)).thenReturn(doc);
+        when(documentMapper.toDto(doc)).thenReturn(
+                new DocumentDto(id, "T", "f", "c", 1L, null, null, tagId, null));
+
+        assertThat(documentService.updateDocumentTag(id, tagId)).isPresent();
+        assertThat(doc.getTag()).isSameAs(tag);
+    }
+
+    @Test
+    void updateDocumentTag_missingTag_shouldThrow() {
+        UUID id = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+
+        when(documentRepository.findById(id)).thenReturn(Optional.of(new Document()));
+        when(tagRepository.findById(tagId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> documentService.updateDocumentTag(id, tagId))
+                .isInstanceOf(TagNotFoundException.class);
+    }
+
+    @Test
+    void updateDocumentTag_missingDocument_shouldReturnEmpty() {
+        UUID id = UUID.randomUUID();
+        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThat(documentService.updateDocumentTag(id, UUID.randomUUID())).isEmpty();
     }
 }

@@ -1,5 +1,10 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+CREATE TABLE tags (
+                      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                      name VARCHAR(100) NOT NULL UNIQUE
+);
+
 CREATE TABLE documents (
                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
                            title VARCHAR(255) NOT NULL,
@@ -8,7 +13,13 @@ CREATE TABLE documents (
                            file_size BIGINT NOT NULL DEFAULT 0,
 
                            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+                           updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                           tag_id UUID,
+
+                           CONSTRAINT fk_document_tag
+                               FOREIGN KEY (tag_id)
+                                   REFERENCES tags(id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
+CREATE INDEX IF NOT EXISTS idx_documents_tag_id ON documents(tag_id);
