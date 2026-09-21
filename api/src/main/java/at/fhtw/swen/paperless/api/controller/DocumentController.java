@@ -9,10 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -43,6 +43,24 @@ public class DocumentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(toResponse(created));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DocumentResponse> getDocument(@PathVariable UUID id) {
+        return documentService.getDocument(id)
+                .map(dto -> ResponseEntity.ok(toResponse(dto)))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DocumentResponse>> getAllDocuments() {
+        List<DocumentDto> documents = documentService.getAllDocuments();
+
+        return ResponseEntity.ok(
+                documents.stream()
+                        .map(this::toResponse)
+                        .toList()
+        );
     }
 
     private DocumentResponse toResponse(DocumentDto dto) {
