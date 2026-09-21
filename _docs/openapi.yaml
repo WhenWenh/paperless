@@ -1,0 +1,86 @@
+openapi: 3.1.0
+info:
+  title: Paperless API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8081
+    description: Lokale API
+paths:
+  /api/v1/documents:
+    post:
+      tags: [Documents]
+      summary: Dokument-Metadaten anlegen
+      operationId: createDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDocumentRequest'
+            example:
+              title: Testrechnung
+              originalFilename: rechnung.pdf
+              contentType: application/pdf
+              fileSize: 1024
+      responses:
+        '201':
+          description: Metadaten gespeichert; ID und Zeitstempel werden automatisch erzeugt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Ungueltiges JSON oder Validierungsfehler (z. B. leerer Titel, fehlende oder negative fileSize).
+        '415':
+          description: Nicht unterstuetzter Content-Type; application/json verwenden.
+components:
+  schemas:
+    CreateDocumentRequest:
+      type: object
+      required: [title, originalFilename, contentType, fileSize]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+          pattern: '\S'
+        originalFilename:
+          type: string
+          minLength: 1
+          maxLength: 512
+          pattern: '\S'
+        contentType:
+          type: string
+          minLength: 1
+          maxLength: 127
+          pattern: '\S'
+          description: MIME-Typ der beschriebenen Datei.
+        fileSize:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 9223372036854775807
+          description: Dateigroesse in Bytes.
+    DocumentResponse:
+      type: object
+      required: [id, title, originalFilename, contentType, fileSize, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        originalFilename:
+          type: string
+        contentType:
+          type: string
+        fileSize:
+          type: integer
+          format: int64
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
