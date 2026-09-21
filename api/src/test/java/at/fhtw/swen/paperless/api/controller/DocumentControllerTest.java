@@ -67,4 +67,51 @@ class DocumentControllerTest {
                         .content("{\"title\":\"\",\"originalFilename\":\"\",\"contentType\":\"\",\"fileSize\":-1}"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void getDocument_shouldReturn404WhenMissing() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(documentService.getDocument(id)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/documents/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getAllDocuments_shouldReturnList() throws Exception {
+        when(documentService.getAllDocuments()).thenReturn(List.of(
+                new DocumentDto(
+                        UUID.randomUUID(),
+                        "Title",
+                        "file.pdf",
+                        "application/pdf",
+                        123L,
+                        null,
+                        null
+                )));
+        mockMvc.perform(get("/api/v1/documents"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void getDocument_shouldReturnDocument() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(documentService.getDocument(id)).thenReturn(Optional.of(
+                new DocumentDto(
+                        id,
+                        "Title",
+                        "file.pdf",
+                        "application/pdf",
+                        123L,
+                        null,
+                        null
+                )));
+
+        mockMvc.perform(get("/api/v1/documents/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.title").value("Title"));
+    }
 }
