@@ -63,6 +63,12 @@ public class DocumentController {
         );
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteDocument(@PathVariable UUID id) {
+        documentService.deleteDocument(id);
+        return ResponseEntity.noContent().build();
+    }
+
     private DocumentResponse toResponse(DocumentDto dto) {
         return new DocumentResponse(
                 dto.id(),
