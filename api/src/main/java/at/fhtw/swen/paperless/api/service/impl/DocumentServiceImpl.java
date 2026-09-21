@@ -44,4 +44,10 @@ public class DocumentServiceImpl implements DocumentService {
         return documentRepository.findById(id)
                 .map(documentMapper::toDto);
     }
+
+    @Override
+    public void deleteDocument(UUID id) {
+        log.debug("Deleting document with id '{}'", id);
+        documentRepository.deleteById(id);
+    }
 }

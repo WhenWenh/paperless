@@ -11,4 +11,5 @@ public interface DocumentService {
     DocumentDto createDocument(DocumentDto document);
     List<DocumentDto> getAllDocuments();
     Optional<DocumentDto> getDocument(UUID id);
+    void deleteDocument(UUID id);
 }
