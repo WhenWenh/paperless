@@ -34,9 +34,7 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDto> getAllDocuments() {
-        return documentRepository.findAll().stream()
-                .map(documentMapper::toDto)
-                .toList();
+        return documentMapper.toDto(documentRepository.findAll());
     }
 
     @Override

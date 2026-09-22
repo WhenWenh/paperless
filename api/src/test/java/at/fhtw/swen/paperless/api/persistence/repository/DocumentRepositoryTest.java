@@ -14,11 +14,12 @@ class DocumentRepositoryTest {
 
     @Test
     void saveAndFind_shouldPersistMetadataAndGenerateIdAndTimestamps() {
-        Document document = new Document();
-        document.setTitle("Test");
-        document.setOriginalFilename("test.pdf");
-        document.setContentType("application/pdf");
-        document.setFileSize(100L);
+        Document document = Document.builder()
+                .title("Test")
+                .originalFilename("test.pdf")
+                .contentType("application/pdf")
+                .fileSize(100L)
+                .build();
 
         Document saved = documentRepository.saveAndFlush(document);
         var id = saved.getId();
@@ -36,11 +37,12 @@ class DocumentRepositoryTest {
 
     @Test
     void delete_shouldRemoveDocument() {
-        Document doc = new Document();
-        doc.setTitle("ToDelete");
-        doc.setOriginalFilename("d.pdf");
-        doc.setContentType("application/pdf");
-        doc.setFileSize(1L);
+        Document doc = Document.builder()
+                .title("ToDelete")
+                .originalFilename("d.pdf")
+                .contentType("application/pdf")
+                .fileSize(1L)
+                .build();
         Document saved = documentRepository.save(doc);
 
         documentRepository.deleteById(saved.getId());

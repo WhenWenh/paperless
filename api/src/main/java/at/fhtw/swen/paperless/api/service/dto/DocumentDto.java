@@ -1,8 +1,11 @@
 package at.fhtw.swen.paperless.api.service.dto;
 
+import lombok.Builder;
+
 import java.time.Instant;
 import java.util.UUID;
 
+@Builder
 public record DocumentDto(
         UUID id,
         String title,

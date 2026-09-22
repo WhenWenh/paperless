@@ -28,15 +28,13 @@ public class DocumentController {
     ) {
         log.debug("REST request to create document '{}'", request.title());
 
-        DocumentDto dto = new DocumentDto(
-                null,
-                request.title(),
-                request.originalFilename(),
-                request.contentType(),
-                request.fileSize(),
-                null,
-                null
-        );
+        DocumentDto dto = DocumentDto.builder()
+                .title(request.title())
+                .originalFilename(request.originalFilename())
+                .contentType(request.contentType())
+                .fileSize(request.fileSize())
+//                .tagId(request.tagId())
+                .build();
 
         DocumentDto created = documentService.createDocument(dto);
 
@@ -70,14 +68,16 @@ public class DocumentController {
     }
 
     private DocumentResponse toResponse(DocumentDto dto) {
-        return new DocumentResponse(
-                dto.id(),
-                dto.title(),
-                dto.originalFilename(),
-                dto.contentType(),
-                dto.fileSize(),
-                dto.createdAt(),
-                dto.updatedAt()
-        );
+        return DocumentResponse.builder()
+                .id(dto.id())
+                .title(dto.title())
+                .originalFilename(dto.originalFilename())
+                .contentType(dto.contentType())
+                .fileSize(dto.fileSize())
+                .createdAt(dto.createdAt())
+                .updatedAt(dto.updatedAt())
+//                .tagId(dto.tagId())
+//                .tagName(dto.tagName())
+                .build();
     }
 }

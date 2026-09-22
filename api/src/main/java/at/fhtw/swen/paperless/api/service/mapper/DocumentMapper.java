@@ -4,27 +4,41 @@ import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.springframework.stereotype.Component;
 
-@Component
-public class DocumentMapper {
+import java.util.UUID;
 
+@Component
+public class DocumentMapper extends AbstractMapper<Document, DocumentDto> {
+
+    @Override
     public DocumentDto toDto(Document entity) {
-        return new DocumentDto(
-                entity.getId(),
-                entity.getTitle(),
-                entity.getOriginalFilename(),
-                entity.getContentType(),
-                entity.getFileSize(),
-                entity.getCreatedAt(),
-                entity.getUpdatedAt()
-        );
+        UUID tagId = null;
+        String tagName = null;
+
+//        if (entity.getTag() != null) {
+//            tagId = entity.getTag().getId();
+//            tagName = entity.getTag().getName();
+//        }
+
+        return DocumentDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .originalFilename(entity.getOriginalFilename())
+                .contentType(entity.getContentType())
+                .fileSize(entity.getFileSize())
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+//                .tagId(tagId)
+//                .tagName(tagName)
+                .build();
     }
 
+    @Override
     public Document toEntity(DocumentDto dto) {
-        Document entity = new Document();
-        entity.setTitle(dto.title());
-        entity.setOriginalFilename(dto.originalFilename());
-        entity.setContentType(dto.contentType());
-        entity.setFileSize(dto.fileSize());
-        return entity;
+        return Document.builder()
+                .title(dto.title())
+                .originalFilename(dto.originalFilename())
+                .contentType(dto.contentType())
+                .fileSize(dto.fileSize())
+                .build();
     }
 }
