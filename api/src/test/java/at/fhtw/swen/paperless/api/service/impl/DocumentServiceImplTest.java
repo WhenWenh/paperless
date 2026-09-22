@@ -32,28 +32,28 @@ class DocumentServiceImplTest {
 
     @Test
     void createDocument_shouldPersistAndReturnDto() {
-        DocumentDto input = new DocumentDto(
-                null,
-                "Title",
-                "file.pdf",
-                "application/pdf",
-                123L,
-                null,
-                null
-        );
-        Document entity = new Document();
-        Document saved = new Document();
-        saved.setId(UUID.randomUUID());
-        saved.setTitle("Title");
-        DocumentDto output = new DocumentDto(
-                saved.getId(),
-                "Title",
-                "file.pdf",
-                "application/pdf",
-                123L,
-                null,
-                null
-        );
+        DocumentDto input = DocumentDto.builder()
+                .title("Title")
+                .originalFilename("file.pdf")
+                .contentType("application/pdf")
+                .fileSize(123L)
+                .build();
+
+        Document entity = Document.builder().build();
+
+        Document saved = Document.builder()
+                .id(UUID.randomUUID())
+                .title("Title")
+                .build();
+
+        DocumentDto output = DocumentDto.builder()
+                .id(saved.getId())
+                .title("Title")
+                .originalFilename("file.pdf")
+                .contentType("application/pdf")
+                .fileSize(123L)
+                .build();
+
         when(documentMapper.toEntity(input)).thenReturn(entity);
         when(documentRepository.save(entity)).thenReturn(saved);
         when(documentMapper.toDto(saved)).thenReturn(output);
@@ -76,21 +76,28 @@ class DocumentServiceImplTest {
 
     @Test
     void getAllDocuments_shouldReturnMappedList() {
-        Document doc = new Document();
-        doc.setId(UUID.randomUUID());
-        DocumentDto dto = new DocumentDto(
-                doc.getId(),
-                "T",
-                "f",
-                "c",
-                1L,
-                null,
-                null
-        );
-        when(documentRepository.findAll()).thenReturn(List.of(doc));
-        when(documentMapper.toDto(doc)).thenReturn(dto);
+        Document doc = Document.builder()
+                .id(UUID.randomUUID())
+                .build();
 
-        assertThat(documentService.getAllDocuments()).containsExactly(dto);
+        DocumentDto dto = DocumentDto.builder()
+                .id(doc.getId())
+                .title("T")
+                .originalFilename("f")
+                .contentType("c")
+                .fileSize(1L)
+                .build();
+
+        List<Document> documents = List.of(doc);
+        List<DocumentDto> dtos = List.of(dto);
+
+        when(documentRepository.findAll()).thenReturn(documents);
+        when(documentMapper.toDto(documents)).thenReturn(dtos);
+
+        assertThat(documentService.getAllDocuments())
+                .containsExactly(dto);
+
+        verify(documentMapper).toDto(documents);
     }
 
     @Test

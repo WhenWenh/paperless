@@ -1,8 +1,11 @@
 package at.fhtw.swen.paperless.api.controller.response;
 
+import lombok.Builder;
+
 import java.time.Instant;
 import java.util.UUID;
 
+@Builder
 public record DocumentResponse(
         UUID id,
         String title,
