@@ -1,19 +1,19 @@
 package at.fhtw.swen.paperless.api.service;
 
-import at.fhtw.swen.paperless.api.persistence.entity.Tag;
+import at.fhtw.swen.paperless.api.service.dto.TagDto;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface TagService {
-    Tag createTag(String name);
+    TagDto createTag(String name);
 
-    Optional<Tag> getTagById(UUID id);
+    Optional<TagDto> getTagById(UUID id);
 
-    Optional<Tag> getTagByName(String name);
+    Optional<TagDto> getTagByName(String name);
 
-    List<Tag> getAllTags();
+    List<TagDto> getAllTags();
 
     void deleteTag(UUID id);
 }

@@ -2,15 +2,15 @@ package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.request.CreateTagRequest;
 import at.fhtw.swen.paperless.api.controller.response.TagResponse;
-import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.service.TagService;
+import at.fhtw.swen.paperless.api.service.dto.TagDto;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/tags")
@@ -22,8 +22,8 @@ public class TagController {
     }
 
     @PostMapping
-    public ResponseEntity<TagResponse> createTag(@RequestBody CreateTagRequest request) {
-        Tag tag = tagService.createTag(request.name());
+    public ResponseEntity<TagResponse> createTag(@Valid @RequestBody CreateTagRequest request) {
+        TagDto tag = tagService.createTag(request.name());
         return ResponseEntity.status(HttpStatus.CREATED).body(toTagResponse(tag));
     }
 
@@ -31,7 +31,7 @@ public class TagController {
     public ResponseEntity<List<TagResponse>> getAllTags() {
         return ResponseEntity.ok(tagService.getAllTags().stream()
                 .map(this::toTagResponse)
-                .collect(Collectors.toList()));
+                .toList());
     }
 
     @DeleteMapping("/{id}")
@@ -40,7 +40,10 @@ public class TagController {
         return ResponseEntity.noContent().build();
     }
 
-    private TagResponse toTagResponse(Tag tag) {
-        return new TagResponse(tag.getId(), tag.getName());
+    private TagResponse toTagResponse(TagDto tag) {
+        return TagResponse.builder()
+                .id(tag.getId())
+                .name(tag.getName())
+                .build();
     }
 }
