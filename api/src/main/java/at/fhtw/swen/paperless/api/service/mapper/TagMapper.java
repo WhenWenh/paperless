@@ -11,17 +11,26 @@ import java.util.List;
 public class TagMapper extends AbstractMapper<Tag, TagDto> {
 
     @Override
-    public TagDto mapToDto(Tag entity) {
+    public TagDto toDto(Tag entity) {
         return TagDto.builder()
                 .id(entity.getId())
                 .name(entity.getName())
                 .build();
     }
 
-    // Tag lists are always returned alphabetically, ignoring upper/lower case
     @Override
-    protected List<TagDto> sort(List<TagDto> unsortedList) {
-        unsortedList.sort(Comparator.comparing(TagDto::getName, String.CASE_INSENSITIVE_ORDER));
-        return unsortedList;
+    public Tag toEntity(TagDto dto) {
+        return Tag.builder()
+                .name(dto.getName())
+                .build();
+    }
+
+    @Override
+    protected List<TagDto> sort(List<TagDto> tags) {
+        tags.sort(Comparator.comparing(
+                TagDto::getName,
+                String.CASE_INSENSITIVE_ORDER
+        ));
+        return tags;
     }
 }

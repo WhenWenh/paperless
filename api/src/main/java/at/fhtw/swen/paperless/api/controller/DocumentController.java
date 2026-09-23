@@ -34,7 +34,7 @@ public class DocumentController {
                 .originalFilename(request.originalFilename())
                 .contentType(request.contentType())
                 .fileSize(request.fileSize())
-//                .tagId(request.tagId())
+                .tagId(request.tagId())
                 .build();
 
         DocumentDto created = documentService.createDocument(dto);

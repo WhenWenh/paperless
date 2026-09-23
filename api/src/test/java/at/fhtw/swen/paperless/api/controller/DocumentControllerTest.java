@@ -155,4 +155,29 @@ class DocumentControllerTest {
                         .content("{\"tagId\":null}"))
                 .andExpect(status().isNotFound());
     }
+    @Test
+    void createDocument_shouldPassTagToService() throws Exception {
+        UUID tagId = UUID.randomUUID();
+        DocumentDto created = DocumentDto.builder()
+                .id(UUID.randomUUID())
+                .title("Invoice")
+                .tagId(tagId)
+                .tagName("Finance")
+                .build();
+        when(documentService.createDocument(any())).thenReturn(created);
+
+        mockMvc.perform(post("/api/v1/documents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Invoice","originalFilename":"invoice.pdf",
+                                 "contentType":"application/pdf","fileSize":123,"tagId":"%s"}
+                                """.formatted(tagId)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tagId").value(tagId.toString()));
+
+        org.mockito.ArgumentCaptor<DocumentDto> captor =
+                org.mockito.ArgumentCaptor.forClass(DocumentDto.class);
+        org.mockito.Mockito.verify(documentService).createDocument(captor.capture());
+        org.assertj.core.api.Assertions.assertThat(captor.getValue().tagId()).isEqualTo(tagId);
+    }
 }

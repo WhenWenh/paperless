@@ -14,32 +14,32 @@ class TagMapperTest {
     private final TagMapper mapper = new TagMapper();
 
     @Test
-    void mapToDto_shouldMapSingleEntity() {
+    void toDto_shouldMapSingleEntity() {
         UUID id = UUID.randomUUID();
         Tag tag = Tag.builder().id(id).name("Finance").build();
 
-        TagDto dto = mapper.mapToDto(tag);
+        TagDto dto = mapper.toDto(tag);
 
         assertThat(dto.getId()).isEqualTo(id);
         assertThat(dto.getName()).isEqualTo("Finance");
     }
 
     @Test
-    void mapToDto_shouldSortListAlphabeticallyIgnoringCase() {
+    void toDto_shouldSortListAlphabeticallyIgnoringCase() {
         List<Tag> tags = List.of(
                 Tag.builder().name("work").build(),
                 Tag.builder().name("Finance").build(),
                 Tag.builder().name("archive").build()
         );
 
-        List<TagDto> dtos = mapper.mapToDto(tags);
+        List<TagDto> dtos = mapper.toDto(tags);
 
         assertThat(dtos).extracting(TagDto::getName)
                 .containsExactly("archive", "Finance", "work");
     }
 
     @Test
-    void mapToDto_shouldReturnEmptyListForNoEntities() {
-        assertThat(mapper.mapToDto(List.<Tag>of())).isEmpty();
+    void toDto_shouldReturnEmptyListForNoEntities() {
+        assertThat(mapper.toDto(List.<Tag>of())).isEmpty();
     }
 }

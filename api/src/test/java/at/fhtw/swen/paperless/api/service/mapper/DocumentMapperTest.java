@@ -2,6 +2,7 @@ package at.fhtw.swen.paperless.api.service.mapper;
 
 import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.persistence.entity.Document;
+import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +92,16 @@ class DocumentMapperTest {
         List<Document> documents = List.of();
 
         assertThat(mapper.toDto(documents)).isEmpty();
+    }
+    @Test
+    void toDto_shouldIncludeAssignedTag() {
+        UUID tagId = UUID.randomUUID();
+        Tag tag = Tag.builder().id(tagId).name("Finance").build();
+        Document document = Document.builder().title("Invoice").tag(tag).build();
+
+        DocumentDto dto = mapper.toDto(document);
+
+        assertThat(dto.tagId()).isEqualTo(tagId);
+        assertThat(dto.tagName()).isEqualTo("Finance");
     }
 }

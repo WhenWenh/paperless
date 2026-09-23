@@ -14,10 +14,10 @@ public class DocumentMapper extends AbstractMapper<Document, DocumentDto> {
         UUID tagId = null;
         String tagName = null;
 
-//        if (entity.getTag() != null) {
-//            tagId = entity.getTag().getId();
-//            tagName = entity.getTag().getName();
-//        }
+        if (entity.getTag() != null) {
+            tagId = entity.getTag().getId();
+            tagName = entity.getTag().getName();
+        }
 
         return DocumentDto.builder()
                 .id(entity.getId())
@@ -27,8 +27,8 @@ public class DocumentMapper extends AbstractMapper<Document, DocumentDto> {
                 .fileSize(entity.getFileSize())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
-//                .tagId(tagId)
-//                .tagName(tagName)
+                .tagId(tagId)
+                .tagName(tagName)
                 .build();
     }
 

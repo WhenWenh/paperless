@@ -38,24 +38,24 @@ public class TagServiceImpl implements TagService {
                 .name(trimmedName)
                 .build();
 
-        TagDto created = tagMapper.mapToDto(tagRepository.save(tag));
+        TagDto created = tagMapper.toDto(tagRepository.save(tag));
         log.info("Created tag '{}' with id '{}'", created.getName(), created.getId());
         return created;
     }
 
     @Override
     public Optional<TagDto> getTagById(UUID id) {
-        return tagRepository.findById(id).map(tagMapper::mapToDto);
+        return tagRepository.findById(id).map(tagMapper::toDto);
     }
 
     @Override
     public Optional<TagDto> getTagByName(String name) {
-        return tagRepository.findByName(name).map(tagMapper::mapToDto);
+        return tagRepository.findByName(name).map(tagMapper::toDto);
     }
 
     @Override
     public List<TagDto> getAllTags() {
-        return tagMapper.mapToDto(tagRepository.findAll());
+        return tagMapper.toDto(tagRepository.findAll());
     }
 
     @Override

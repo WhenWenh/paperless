@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Paperless API
-  version: 0.2.0
+  version: 0.3.0
 servers:
   - url: http://localhost:8081
 paths:
@@ -18,6 +18,14 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateDocumentRequest"
       responses:
+        "400":
+          description: Invalid request body or metadata. Validation errors use ErrorResponse.
+        "404":
+          description: The supplied tag does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "201":
           description: Document created.
           content:
@@ -30,6 +38,13 @@ paths:
         - Documents
       summary: List all documents
       operationId: getAllDocuments
+      parameters:
+        - name: tag
+          in: query
+          description: Filter documents by exact tag name. Omit to return all documents.
+          schema:
+            type: string
+          example: Finance
       responses:
         "200":
           description: List of documents.
@@ -80,7 +95,137 @@ paths:
           description: Document deleted.
 
 
+  /api/v1/documents/{id}/tag:
+    put:
+      tags: [Documents]
+      summary: Assign, replace or remove a document tag
+      operationId: updateDocumentTag
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDocumentTagRequest"
+            examples:
+              assign:
+                value:
+                  tagId: 123e4567-e89b-12d3-a456-426614174000
+              remove:
+                value:
+                  tagId: null
+      responses:
+        "200":
+          description: Document with the updated tag assignment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentResponse"
+        "400":
+          description: Invalid UUID or request body.
+        "404":
+          description: Document not found (empty body), or tag not found (ErrorResponse).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/tags:
+    post:
+      tags: [Tags]
+      summary: Create a tag
+      operationId: createTag
+      description: Trims the name and rejects existing names ignoring case.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTagRequest"
+      responses:
+        "201":
+          description: Tag created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TagResponse"
+        "400":
+          description: Invalid request body or name. Validation errors use ErrorResponse.
+        "409":
+          description: A tag with this name already exists, ignoring case.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags: [Tags]
+      summary: List tags alphabetically, ignoring case
+      operationId: getAllTags
+      responses:
+        "200":
+          description: All tags; an empty array when no tags exist.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TagResponse"
+
+  /api/v1/tags/{id}:
+    delete:
+      tags: [Tags]
+      summary: Delete an unused tag
+      operationId: deleteTag
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "204":
+          description: Tag deleted. No response body.
+        "400":
+          description: Invalid tag UUID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Tag not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Tag is assigned to documents and cannot be deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/statistics/tags:
+    get:
+      tags: [Statistics]
+      summary: Count documents per tag
+      operationId: getTagStatistics
+      description: Includes tags with zero documents. Adds an Untagged entry with a null tagId only when documents without a tag exist.
+      responses:
+        "200":
+          description: Document counts by tag.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TagStatisticsResponse"
+
 components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   schemas:
     CreateDocumentRequest:
       type: object
@@ -114,6 +259,11 @@ components:
           minimum: 0
           example: 1024
 
+        tagId:
+          type: [string, "null"]
+          format: uuid
+          description: Optional existing tag to assign. Omitted or null means no tag.
+
     DocumentResponse:
       type: object
       required:
@@ -143,3 +293,77 @@ components:
         updatedAt:
           type: string
           format: date-time
+        tagId:
+          type: [string, "null"]
+          format: uuid
+        tagName:
+          type: [string, "null"]
+
+    UpdateDocumentTagRequest:
+      type: object
+      properties:
+        tagId:
+          type: [string, "null"]
+          format: uuid
+          description: Existing tag ID. Null or omitted removes the current assignment.
+
+    CreateTagRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          pattern: '\S'
+          example: Finance
+
+    TagResponse:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: Finance
+
+    TagStatisticsResponse:
+      type: object
+      required: [tagId, tagName, documentCount]
+      properties:
+        tagId:
+          type: [string, "null"]
+          format: uuid
+        tagName:
+          type: string
+          example: Finance
+        documentCount:
+          type: integer
+          format: int64
+          minimum: 0
+
+    ErrorResponse:
+      type: object
+      required: [timestamp, status, error, message, path]
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          example: 409
+        error:
+          type: string
+          example: Conflict
+        message:
+          type: string
+        path:
+          type: string
+          example: /api/v1/tags
+        details:
+          type: [object, "null"]
+          additionalProperties:
+            type: string
+          description: Field validation errors, or null for other handled errors.
