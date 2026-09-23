@@ -37,15 +37,13 @@ class DocumentControllerTest {
         UUID id = UUID.randomUUID();
 
         when(documentService.createDocument(any())).thenReturn(
-                new DocumentDto(
-                        id,
-                        "Title",
-                        "file.pdf",
-                        "application/pdf",
-                        123L,
-                        null,
-                        null, null, null
-                ));
+                DocumentDto.builder()
+                        .id(id)
+                        .title("Title")
+                        .originalFilename("file.pdf")
+                        .contentType("application/pdf")
+                        .fileSize(123L)
+                        .build());
 
         mockMvc.perform(post("/api/v1/documents")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -82,15 +80,13 @@ class DocumentControllerTest {
     @Test
     void getAllDocuments_shouldReturnList() throws Exception {
         when(documentService.getAllDocuments()).thenReturn(List.of(
-                new DocumentDto(
-                        UUID.randomUUID(),
-                        "Title",
-                        "file.pdf",
-                        "application/pdf",
-                        123L,
-                        null,
-                        null, null, null
-                )));
+                DocumentDto.builder()
+                        .id(UUID.randomUUID())
+                        .title("Title")
+                        .originalFilename("file.pdf")
+                        .contentType("application/pdf")
+                        .fileSize(123L)
+                        .build()));
         mockMvc.perform(get("/api/v1/documents"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
@@ -101,15 +97,13 @@ class DocumentControllerTest {
         UUID id = UUID.randomUUID();
 
         when(documentService.getDocument(id)).thenReturn(Optional.of(
-                new DocumentDto(
-                        id,
-                        "Title",
-                        "file.pdf",
-                        "application/pdf",
-                        123L,
-                        null,
-                        null, null, null
-                )));
+                DocumentDto.builder()
+                        .id(id)
+                        .title("Title")
+                        .originalFilename("file.pdf")
+                        .contentType("application/pdf")
+                        .fileSize(123L)
+                        .build()));
 
         mockMvc.perform(get("/api/v1/documents/" + id))
                 .andExpect(status().isOk())

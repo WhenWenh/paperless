@@ -6,6 +6,7 @@ import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -21,14 +22,15 @@ class DocumentMapperTest {
         Instant createdAt = Instant.now();
         Instant updatedAt = Instant.now();
 
-        Document document = new Document();
-        document.setId(id);
-        document.setTitle("Test Document");
-        document.setOriginalFilename("test.pdf");
-        document.setContentType("application/pdf");
-        document.setFileSize(12345L);
-        document.setCreatedAt(createdAt);
-        document.setUpdatedAt(updatedAt);
+        Document document = Document.builder()
+                .id(id)
+                .title("Test Document")
+                .originalFilename("test.pdf")
+                .contentType("application/pdf")
+                .fileSize(12345L)
+                .createdAt(createdAt)
+                .updatedAt(updatedAt)
+                .build();
 
         // Act
         DocumentDto dto = mapper.toDto(document);
@@ -46,15 +48,15 @@ class DocumentMapperTest {
     @Test
     void toEntity_shouldMapDtoToEntity() {
         // Arrange
-        DocumentDto dto = new DocumentDto(
-                UUID.randomUUID(),
-                "Test Document",
-                "test.pdf",
-                "application/pdf",
-                12345L,
-                Instant.now(),
-                Instant.now(), null, null
-        );
+        DocumentDto dto = DocumentDto.builder()
+                .id(UUID.randomUUID())
+                .title("Test Document")
+                .originalFilename("test.pdf")
+                .contentType("application/pdf")
+                .fileSize(12345L)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
 
         // Act
         Document entity = mapper.toEntity(dto);
@@ -71,21 +73,23 @@ class DocumentMapperTest {
         assertThat(entity.getUpdatedAt()).isNull();
     }
 
+
     @Test
-    void toDto_shouldMapEntityWithTag() {
-        UUID tagId = UUID.randomUUID();
-        Tag tag = new Tag();
-        tag.setId(tagId);
-        tag.setName("Finance");
+    void toDto_shouldMapCollection() {
+        Document first = Document.builder().title("First").build();
+        Document second = Document.builder().title("Second").build();
 
-        Document document = new Document();
-        document.setId(UUID.randomUUID());
-        document.setTitle("Test Document");
-        document.setTag(tag);
+        List<DocumentDto> result = mapper.toDto(List.of(first, second));
 
-        DocumentDto dto = mapper.toDto(document);
+        assertThat(result)
+                .extracting(DocumentDto::title)
+                .containsExactly("First", "Second");
+    }
 
-        assertThat(dto.tagId()).isEqualTo(tagId);
-        assertThat(dto.tagName()).isEqualTo("Finance");
+    @Test
+    void toDto_shouldReturnEmptyListForEmptyCollection() {
+        List<Document> documents = List.of();
+
+        assertThat(mapper.toDto(documents)).isEmpty();
     }
 }
