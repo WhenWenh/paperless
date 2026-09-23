@@ -1,5 +1,7 @@
 package at.fhtw.swen.paperless.api.controller;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.junit.jupiter.api.Test;
@@ -114,5 +116,43 @@ class DocumentControllerTest {
         UUID id = UUID.randomUUID();
         mockMvc.perform(delete("/api/v1/documents/" + id))
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void getDocumentsByTag_shouldReturnDocuments() throws Exception {
+        UUID tagId = UUID.randomUUID();
+        when(documentService.getDocumentsByTag("Finance")).thenReturn(List.of(
+                new DocumentDto(UUID.randomUUID(), "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
+
+        mockMvc.perform(get("/api/v1/documents").param("tag", "Finance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].tagName").value("Finance"));
+    }
+
+    @Test
+    void updateDocumentTag_shouldReturn200() throws Exception {
+        UUID id = UUID.randomUUID();
+        UUID tagId = UUID.randomUUID();
+        when(documentService.updateDocumentTag(eq(id), eq(tagId))).thenReturn(Optional.of(
+                new DocumentDto(id, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
+
+        mockMvc.perform(put("/api/v1/documents/" + id + "/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tagId\":\"" + tagId + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tagId").value(tagId.toString()))
+                .andExpect(jsonPath("$.tagName").value("Finance"));
+    }
+
+    @Test
+    void updateDocumentTag_shouldReturn404WhenDocumentMissing() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(documentService.updateDocumentTag(eq(id), eq(null))).thenReturn(Optional.empty());
+
+        mockMvc.perform(put("/api/v1/documents/" + id + "/tag")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tagId\":null}"))
+                .andExpect(status().isNotFound());
     }
 }

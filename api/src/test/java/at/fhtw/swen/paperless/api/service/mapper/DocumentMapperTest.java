@@ -1,5 +1,6 @@
 package at.fhtw.swen.paperless.api.service.mapper;
 
+import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import org.junit.jupiter.api.Test;

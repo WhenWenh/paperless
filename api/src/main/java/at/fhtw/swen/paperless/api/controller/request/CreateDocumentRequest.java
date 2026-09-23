@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
+import java.util.UUID;
+
 public record CreateDocumentRequest(
 
         @NotBlank
@@ -21,7 +23,9 @@ public record CreateDocumentRequest(
 
         @NotNull
         @PositiveOrZero
-        Long fileSize
+        Long fileSize,
+
+        UUID tagId
 
 ) {
 }
