@@ -1,0 +1,220 @@
+{
+  "info": {
+    "name": "Paperless API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.2.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "documentTitle",
+      "value": "Invoice 2026"
+    },
+    {
+      "key": "filename",
+      "value": "invoice.pdf"
+    },
+    {
+      "key": "contentType",
+      "value": "application/pdf"
+    },
+    {
+      "key": "fileSize",
+      "value": "1024"
+    },
+    {
+      "key": "tagName",
+      "value": "Finance1"
+    },
+    {
+      "key": "tagId",
+      "value": ""
+    },
+    {
+      "key": "documentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Create Tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Tag has id\", function () {",
+                  "    pm.expect(json).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "pm.test(\"Tag name matches\", function () {",
+                  "    pm.expect(json.name).to.eql(pm.collectionVariables.get(\"tagName\"));",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"tagId\", json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{tagName}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/tags"
+          }
+        },
+        {
+          "name": "List Tags",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/tags"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Create Document With Tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Document has id\", function () {",
+                  "    pm.expect(json).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "pm.test(\"Document contains tag\", function () {",
+                  "    pm.expect(json.tagId).to.eql(pm.collectionVariables.get(\"tagId\"));",
+                  "    pm.expect(json.tagName).to.eql(pm.collectionVariables.get(\"tagName\"));",
+                  "});",
+                  "",
+                  "pm.collectionVariables.set(\"documentId\", json.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"{{documentTitle}}\",\n  \"originalFilename\": \"{{filename}}\",\n  \"contentType\": \"{{contentType}}\",\n  \"fileSize\": {{fileSize}},\n  \"tagId\": \"{{tagId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/documents"
+          }
+        },
+        {
+          "name": "List Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const json = pm.response.json();",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    pm.expect(json).to.be.an(\"array\");",
+                  "});",
+                  "",
+                  "const documentId = pm.collectionVariables.get(\"documentId\");",
+                  "",
+                  "pm.test(\"Created document exists\", function () {",
+                  "    const found = json.some(function(document) {",
+                  "        return document.id === documentId;",
+                  "    });",
+                  "",
+                  "    pm.expect(found).to.eql(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents"
+          }
+        },
+        {
+          "name": "Get Document",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          }
+        },
+        {
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete Tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/tags/{{tagId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
