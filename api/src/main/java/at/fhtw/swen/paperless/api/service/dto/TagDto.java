@@ -6,11 +6,9 @@ import lombok.Data;
 
 import java.util.UUID;
 
-@Data
 @Builder
-@AllArgsConstructor
-public class TagDto {
-
-    private UUID id;
-    private String name;
+public record TagDto(
+        UUID id,
+        String name
+) {
 }

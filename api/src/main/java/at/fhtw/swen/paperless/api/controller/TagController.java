@@ -42,8 +42,8 @@ public class TagController {
 
     private TagResponse toTagResponse(TagDto tag) {
         return TagResponse.builder()
-                .id(tag.getId())
-                .name(tag.getName())
+                .id(tag.id())
+                .name(tag.name())
                 .build();
     }
 }
