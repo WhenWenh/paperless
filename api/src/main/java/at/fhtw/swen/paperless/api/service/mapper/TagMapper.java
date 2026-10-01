@@ -21,14 +21,14 @@ public class TagMapper extends AbstractMapper<Tag, TagDto> {
     @Override
     public Tag toEntity(TagDto dto) {
         return Tag.builder()
-                .name(dto.getName())
+                .name(dto.name())
                 .build();
     }
 
     @Override
     protected List<TagDto> sort(List<TagDto> tags) {
         tags.sort(Comparator.comparing(
-                TagDto::getName,
+                TagDto::name,
                 String.CASE_INSENSITIVE_ORDER
         ));
         return tags;

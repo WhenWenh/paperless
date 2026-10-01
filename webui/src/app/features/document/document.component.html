@@ -1,0 +1,26 @@
+<a routerLink="/dashboard">Zurück zum Dashboard</a>
+
+<h2>Dokumentdetails</h2>
+
+@if (loading()) {
+  <p>Dokument wird geladen …</p>
+} @else if (error()) {
+  <p>{{ error() }}</p>
+} @else if (document(); as doc) {
+  <dl>
+    <dt>Titel</dt>
+    <dd>{{ doc.title }}</dd>
+
+    <dt>Dateiname</dt>
+    <dd>{{ doc.originalFilename }}</dd>
+
+    <dt>Dateityp</dt>
+    <dd>{{ doc.contentType }}</dd>
+
+    <dt>Dateigröße</dt>
+    <dd>{{ doc.fileSize }} Bytes</dd>
+
+    <dt>Tag</dt>
+    <dd>{{ doc.tagName ?? 'Kein Tag' }}</dd>
+  </dl>
+}

@@ -20,8 +20,8 @@ class TagMapperTest {
 
         TagDto dto = mapper.toDto(tag);
 
-        assertThat(dto.getId()).isEqualTo(id);
-        assertThat(dto.getName()).isEqualTo("Finance");
+        assertThat(dto.id()).isEqualTo(id);
+        assertThat(dto.name()).isEqualTo("Finance");
     }
 
     @Test
@@ -34,7 +34,7 @@ class TagMapperTest {
 
         List<TagDto> dtos = mapper.toDto(tags);
 
-        assertThat(dtos).extracting(TagDto::getName)
+        assertThat(dtos).extracting(TagDto::name)
                 .containsExactly("archive", "Finance", "work");
     }
 

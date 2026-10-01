@@ -27,7 +27,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "201":
-          description: Document created.
+          description: DocumentComponent created.
           content:
             application/json:
               schema:
@@ -76,7 +76,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/DocumentResponse"
         "404":
-          description: Document not found.
+          description: DocumentComponent not found.
 
     delete:
       tags:
@@ -92,7 +92,7 @@ paths:
             format: uuid
       responses:
         "204":
-          description: Document deleted.
+          description: DocumentComponent deleted.
 
 
   /api/v1/documents/{id}/tag:
@@ -117,7 +117,7 @@ paths:
                   tagId: null
       responses:
         "200":
-          description: Document with the updated tag assignment.
+          description: DocumentComponent with the updated tag assignment.
           content:
             application/json:
               schema:
@@ -125,7 +125,7 @@ paths:
         "400":
           description: Invalid UUID or request body.
         "404":
-          description: Document not found (empty body), or tag not found (ErrorResponse).
+          description: DocumentComponent not found (empty body), or tag not found (ErrorResponse).
           content:
             application/json:
               schema:
@@ -209,7 +209,7 @@ paths:
       description: Includes tags with zero documents. Adds an Untagged entry with a null tagId only when documents without a tag exist.
       responses:
         "200":
-          description: Document counts by tag.
+          description: DocumentComponent counts by tag.
           content:
             application/json:
               schema:

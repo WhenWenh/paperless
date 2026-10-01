@@ -39,7 +39,7 @@ public class TagServiceImpl implements TagService {
                 .build();
 
         TagDto created = tagMapper.toDto(tagRepository.save(tag));
-        log.info("Created tag '{}' with id '{}'", created.getName(), created.getId());
+        log.info("Created tag '{}' with id '{}'", created.name(), created.id());
         return created;
     }
 
