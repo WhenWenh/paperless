@@ -8,6 +8,10 @@ import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
+import at.fhtw.swen.paperless.api.service.DocumentStorageService;
+import at.fhtw.swen.paperless.api.service.DocumentValidationService;
+import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,22 +29,48 @@ public class DocumentServiceImpl implements DocumentService {
     private final DocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
     private final TagRepository tagRepository;
+    private final DocumentStorageService documentStorageService;
+    private final DocumentValidationService documentValidationService;
 
     @Override
-    public DocumentDto createDocument(DocumentDto document) {
-        log.debug("Creating document with title '{}'", document.title());
+    public DocumentDto createDocument(
+            CreateDocumentCommand command,
+            MultipartFile file
+    ) {
+        log.debug(
+                "Creating document with title '{}'",
+                command.title()
+        );
 
-        Document entity = documentMapper.toEntity(document);
+        documentValidationService.validateCreate(command, file);
 
-        if (document.tagId() != null) {
-            Tag tag = tagRepository.findById(document.tagId())
-                    .orElseThrow(() -> new TagNotFoundException(document.tagId()));
-            entity.setTag(tag);
+        UUID storageUuid = documentStorageService.store(file);
+
+        try {
+            Document entity = new Document();
+
+            entity.setTitle(command.title());
+            entity.setOriginalFilename(file.getOriginalFilename());
+            entity.setContentType(file.getContentType());
+            entity.setFileSize(file.getSize());
+            entity.setStorageUuid(storageUuid);
+
+            if (command.tagId() != null) {
+                Tag tag = tagRepository.findById(command.tagId())
+                        .orElseThrow(
+                                () -> new TagNotFoundException(command.tagId())
+                        );
+
+                entity.setTag(tag);
+            }
+
+            Document saved = documentRepository.save(entity);
+
+            return documentMapper.toDto(saved);
+        } catch (RuntimeException exception) {
+            documentStorageService.delete(storageUuid);
+            throw exception;
         }
-
-        Document saved = documentRepository.save(entity);
-
-        return documentMapper.toDto(saved);
     }
 
     @Override

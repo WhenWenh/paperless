@@ -5,6 +5,10 @@ import at.fhtw.swen.paperless.api.controller.request.UpdateDocumentTagRequest;
 import at.fhtw.swen.paperless.api.controller.response.DocumentResponse;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
+import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,21 +27,25 @@ public class DocumentController {
 
     private final DocumentService documentService;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentResponse> createDocument(
-            @Valid @RequestBody CreateDocumentRequest request
+            @RequestPart("metadata") @Valid CreateDocumentRequest request,
+            @RequestPart("file") MultipartFile file
     ) {
-        log.debug("REST request to create document '{}'", request.title());
+        log.debug(
+                "REST request to create document '{}'",
+                request.title()
+        );
 
-        DocumentDto dto = DocumentDto.builder()
-                .title(request.title())
-                .originalFilename(request.originalFilename())
-                .contentType(request.contentType())
-                .fileSize(request.fileSize())
-                .tagId(request.tagId())
-                .build();
+        CreateDocumentCommand command = new CreateDocumentCommand(
+                request.title(),
+                request.tagId()
+        );
 
-        DocumentDto created = documentService.createDocument(dto);
+        DocumentDto created = documentService.createDocument(
+                command,
+                file
+        );
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

@@ -1,6 +1,7 @@
 package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.response.ErrorResponse;
+import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
 import at.fhtw.swen.paperless.api.service.exception.TagAlreadyExistsException;
 import at.fhtw.swen.paperless.api.service.exception.TagInUseException;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
@@ -19,6 +20,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(InvalidUploadException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidUpload(
+            InvalidUploadException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Invalid upload: {} ({})",
+                exception.getMessage(),
+                request.getRequestURI());
+        return build(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage(),
+                request
+        );
+    }
 
     @ExceptionHandler(TagNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleTagNotFound(

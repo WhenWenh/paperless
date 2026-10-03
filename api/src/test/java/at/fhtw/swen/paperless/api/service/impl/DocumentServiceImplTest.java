@@ -11,6 +11,13 @@ import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import org.junit.jupiter.api.Test;
+import at.fhtw.swen.paperless.api.service.DocumentStorageService;
+import at.fhtw.swen.paperless.api.service.DocumentValidationService;
+import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
+import org.springframework.mock.web.MockMultipartFile;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -36,45 +43,39 @@ class DocumentServiceImplTest {
     @Mock
     private TagRepository tagRepository;
 
+    @Mock private DocumentStorageService documentStorageService;
+    @Mock private DocumentValidationService documentValidationService;
+
+    private final MockMultipartFile file =
+            new MockMultipartFile("file", "file.pdf", "application/pdf", new byte[]{1, 2, 3});
+
     @InjectMocks
     private DocumentServiceImpl documentService;
 
     @Test
-    void createDocument_shouldPersistAndReturnDto() {
-        DocumentDto input = DocumentDto.builder()
-                .title("Title")
-                .originalFilename("file.pdf")
-                .contentType("application/pdf")
-                .fileSize(123L)
-                .build();
-
-        Document entity = Document.builder().build();
-
-        Document saved = Document.builder()
-                .id(UUID.randomUUID())
-                .title("Title")
-                .build();
-
-        DocumentDto output = DocumentDto.builder()
-                .id(saved.getId())
-                .title("Title")
-                .originalFilename("file.pdf")
-                .contentType("application/pdf")
-                .fileSize(123L)
-                .build();
-
-        when(documentMapper.toEntity(input)).thenReturn(entity);
-        when(documentRepository.save(entity)).thenReturn(saved);
+    void createDocument_shouldPersistFileMetadataAndReturnDto() {
+        CreateDocumentCommand command = new CreateDocumentCommand("Title", null);
+        UUID storageId = UUID.randomUUID();
+        Document saved = Document.builder().id(UUID.randomUUID()).build();
+        DocumentDto output = DocumentDto.builder().id(saved.getId()).title("Title").build();
+        when(documentStorageService.store(file)).thenReturn(storageId);
+        when(documentRepository.save(any(Document.class))).thenReturn(saved);
         when(documentMapper.toDto(saved)).thenReturn(output);
 
-        DocumentDto result = documentService.createDocument(input);
+        assertThat(documentService.createDocument(command, file)).isEqualTo(output);
 
-        assertThat(result).isEqualTo(output);
-        assertThat(result.id()).isNotNull();
-        assertThat(result.title()).isEqualTo("Title");
-        verify(documentRepository).save(entity);
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(documentRepository).save(captor.capture());
+        Document entity = captor.getValue();
+        assertThat(entity.getTitle()).isEqualTo("Title");
+        assertThat(entity.getOriginalFilename()).isEqualTo("file.pdf");
+        assertThat(entity.getContentType()).isEqualTo("application/pdf");
+        assertThat(entity.getFileSize()).isEqualTo(3L);
+        assertThat(entity.getStorageUuid()).isEqualTo(storageId);
+        assertThat(entity.getTag()).isNull();
+        verify(documentValidationService).validateCreate(command, file);
+        verify(documentStorageService, never()).delete(any());
     }
-
     @Test
     void getDocument_shouldReturnEmptyWhenNotFound() {
         UUID id = UUID.randomUUID();
@@ -122,29 +123,31 @@ class DocumentServiceImplTest {
         Tag tag = new Tag();
         tag.setId(tagId);
         tag.setName("Finance");
-        DocumentDto input = new DocumentDto(null, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, null);
-        Document entity = new Document();
+        CreateDocumentCommand input = new CreateDocumentCommand("Title", tagId);
 
-        when(documentMapper.toEntity(input)).thenReturn(entity);
         when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
-        when(documentRepository.save(entity)).thenReturn(entity);
+        when(documentRepository.save(any(Document.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        documentService.createDocument(input);
+        documentService.createDocument(input, file);
 
-        assertThat(entity.getTag()).isSameAs(tag);
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(documentRepository).save(captor.capture());
+        assertThat(captor.getValue().getTag()).isSameAs(tag);
     }
 
     @Test
     void createDocument_withMissingTag_shouldThrowAndNotSave() {
         UUID tagId = UUID.randomUUID();
-        DocumentDto input = new DocumentDto(null, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, null);
+        CreateDocumentCommand input = new CreateDocumentCommand("Title", tagId);
 
-        when(documentMapper.toEntity(input)).thenReturn(new Document());
+        UUID storageId = UUID.randomUUID();
+        when(documentStorageService.store(file)).thenReturn(storageId);
         when(tagRepository.findById(tagId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> documentService.createDocument(input))
+        assertThatThrownBy(() -> documentService.createDocument(input, file))
                 .isInstanceOf(TagNotFoundException.class);
         verify(documentRepository, never()).save(any());
+        verify(documentStorageService).delete(storageId);
     }
 
     @Test
@@ -209,5 +212,43 @@ class DocumentServiceImplTest {
         when(documentRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThat(documentService.updateDocumentTag(id, UUID.randomUUID())).isEmpty();
+    }
+    @Test
+    void createDocument_invalidUpload_shouldNotStoreOrSave() {
+        CreateDocumentCommand command = new CreateDocumentCommand("", null);
+        doThrow(new InvalidUploadException("Invalid title"))
+                .when(documentValidationService).validateCreate(command, file);
+        assertThatThrownBy(() -> documentService.createDocument(command, file))
+                .isInstanceOf(InvalidUploadException.class);
+        verifyNoInteractions(documentStorageService, documentRepository, tagRepository);
+    }
+
+    @Test
+    void createDocument_databaseFailure_shouldDeleteStoredFile() {
+        UUID storageId = UUID.randomUUID();
+        RuntimeException failure = new IllegalStateException("Database unavailable");
+        when(documentStorageService.store(file)).thenReturn(storageId);
+        when(documentRepository.save(any(Document.class))).thenThrow(failure);
+        assertThatThrownBy(() -> documentService.createDocument(new CreateDocumentCommand("Title", null), file))
+                .isSameAs(failure);
+        verify(documentStorageService).delete(storageId);
+    }
+
+    @Test
+    void createDocument_storageFailure_shouldNotSave() {
+        when(documentStorageService.store(file)).thenThrow(new IllegalStateException("Disk full"));
+        assertThatThrownBy(() -> documentService.createDocument(new CreateDocumentCommand("Title", null), file))
+                .isInstanceOf(IllegalStateException.class);
+        verifyNoInteractions(documentRepository);
+    }
+
+    @Test
+    void getDocumentsByTag_none_shouldReturnUntaggedDocuments() {
+        Document document = new Document();
+        DocumentDto dto = DocumentDto.builder().title("Untagged").build();
+        when(documentRepository.findByTagIsNull()).thenReturn(List.of(document));
+        when(documentMapper.toDto(document)).thenReturn(dto);
+        assertThat(documentService.getDocumentsByTag("none")).containsExactly(dto);
+        verify(documentRepository, never()).findByTag_Name(any());
     }
 }

@@ -18,6 +18,8 @@ services:
         condition: service_healthy
     networks:
       - paperless_network
+    volumes:
+      - paperless-storage:/tmp/paperless
 
   webui:
     build: ./webui
@@ -31,6 +33,7 @@ services:
 
 volumes:
   paperless-pg-data:
+  paperless-storage:
 
 networks:
   paperless_network:
