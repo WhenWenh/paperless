@@ -12,6 +12,8 @@ CREATE TABLE documents (
                            content_type VARCHAR(127) NOT NULL,
                            file_size BIGINT NOT NULL DEFAULT 0,
 
+                           storage_uuid UUID UNIQUE,
+
                            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                            tag_id UUID,
