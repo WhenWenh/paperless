@@ -4,6 +4,7 @@ import {
   DocumentService,
   DocumentResponse
 } from '@core/services/document.service';
+import {TaggingComponent} from '@features/tagging/tagging.component';
 
 @Component({
   selector: 'app-document',
@@ -26,7 +27,7 @@ export class DocumentComponent implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
 
     if (!id) {
-      this.error.set('Die Dokument-ID fehlt.');
+      this.error.set('Document-ID is missing');
       this.loading.set(false);
       return;
     }
@@ -39,8 +40,8 @@ export class DocumentComponent implements OnInit {
       error: err => {
         this.error.set(
           err.status === 404
-            ? 'Das Dokument wurde nicht gefunden.'
-            : 'Das Dokument konnte nicht geladen werden.'
+            ? 'Could not find document'
+            : 'Failed to load documents.'
         );
         this.loading.set(false);
       }

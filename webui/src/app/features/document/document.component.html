@@ -1,9 +1,9 @@
-<a routerLink="/dashboard">Zurück zum Dashboard</a>
+<a routerLink="/dashboard">Back to Dashboard</a>
 
-<h2>Dokumentdetails</h2>
+<h2>Document Details</h2>
 
 @if (loading()) {
-  <p>Dokument wird geladen …</p>
+  <p>Loading Document ...</p>
 } @else if (error()) {
   <p>{{ error() }}</p>
 } @else if (document(); as doc) {
@@ -21,6 +21,6 @@
     <dd>{{ doc.fileSize }} Bytes</dd>
 
     <dt>Tag</dt>
-    <dd>{{ doc.tagName ?? 'Kein Tag' }}</dd>
+    <dd>{{ doc.tagName ?? 'No Tag' }}</dd>
   </dl>
 }
