@@ -62,6 +62,12 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDto> getDocumentsByTag(String tagName) {
+        if ("none".equals(tagName)) {
+            return documentRepository.findByTagIsNull().stream()
+                    .map(documentMapper::toDto)
+                    .toList();
+        }
+
         return documentRepository.findByTag_Name(tagName).stream()
                 .map(documentMapper::toDto)
                 .toList();

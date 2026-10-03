@@ -4,9 +4,13 @@ import {
   TagResponse
 } from '../../core/services/tag.service';
 
+import {
+  TaggingComponent
+} from '@features/tagging/tagging.component';
+
 @Component({
   selector: 'app-dashboard',
-  imports: [],
+  imports: [ TaggingComponent ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
@@ -24,7 +28,7 @@ export class DashboardComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => {
-        this.error.set('Die Tags konnten nicht geladen werden.');
+        this.error.set('Tags could not be found.');
         this.loading.set(false);
       }
     });

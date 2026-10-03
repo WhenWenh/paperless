@@ -1,7 +1,7 @@
-<h2>DashboardComponent</h2>
+<h2>Dashboard</h2>
 
 @if (loading()) {
-  <p>Tags werden geladen …</p>
+  <p>Tags are loading ...</p>
 } @else if (error()) {
   <p>{{ error() }}</p>
 } @else {
@@ -11,7 +11,7 @@
     @for (tag of tags(); track tag.id) {
       <li>{{ tag.name }}</li>
     } @empty {
-      <li>Noch keine Tags vorhanden.</li>
+      <li>No Tags available.</li>
     }
   </ul>
 }
