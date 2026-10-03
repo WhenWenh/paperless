@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: Paperless API
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 101MB
 
   datasource:
     url: jdbc:postgresql://localhost:${DB_PORT:5432}/${DB_NAME}
@@ -14,3 +18,17 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+
+paperless:
+  upload:
+    max-file-size: 100MB
+    max-title-length: 20
+    allowed-content-types:
+      - application/pdf
+      - image/jpeg
+      - image/png
+      - text/plain
+      - application/msword
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - application/vnd.ms-excel
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet

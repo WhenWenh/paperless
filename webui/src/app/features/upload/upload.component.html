@@ -1,0 +1,52 @@
+<div class="upload-container">
+  <h2>Upload Document</h2>
+
+  @if (serverError()) {
+    <div class="error" role="alert">{{ serverError() }}</div>
+  }
+  @if (successMessage()) {
+    <p class="success" role="status">{{ successMessage() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="upload()" novalidate [attr.aria-busy]="isUploading()">
+    <div class="form-group">
+      <label for="title">Document Title *</label>
+      <input #titleInput id="title" type="text" formControlName="title"
+        placeholder="Enter document title" aria-required="true"
+        [class.invalid]="fieldError('title')"
+        [attr.aria-invalid]="!!fieldError('title')"
+        [attr.aria-describedby]="fieldError('title') ? 'title-error' : null">
+      @if (fieldError('title'); as message) {
+        <p id="title-error" class="field-error" role="alert">{{ message }}</p>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="file">Select File *</label>
+      <input #fileInput id="file" type="file" aria-required="true"
+        [disabled]="isUploading()"
+        (change)="onFileSelected($event)"
+        [class.invalid]="fieldError('file')"
+        [attr.aria-invalid]="!!fieldError('file')"
+        [attr.aria-describedby]="fieldError('file') ? 'file-error' : null">
+      @if (fieldError('file'); as message) {
+        <p id="file-error" class="field-error" role="alert">{{ message }}</p>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="tag">Tag (Optional)</label>
+      <select id="tag" formControlName="tagId">
+        <option [ngValue]="null">-- No Tag --</option>
+        @for (tag of tags(); track tag.id) {
+          <option [ngValue]="tag.id">{{ tag.name }}</option>
+        }
+      </select>
+    </div>
+
+    <p class="required-hint">*required</p>
+    <button type="submit">
+      {{ isUploading() ? 'Uploading...' : 'Upload Document' }}
+    </button>
+  </form>
+</div>
