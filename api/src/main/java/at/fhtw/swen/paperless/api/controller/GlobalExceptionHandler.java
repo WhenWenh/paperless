@@ -1,10 +1,7 @@
 package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.response.ErrorResponse;
-import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
-import at.fhtw.swen.paperless.api.service.exception.TagAlreadyExistsException;
-import at.fhtw.swen.paperless.api.service.exception.TagInUseException;
-import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
+import at.fhtw.swen.paperless.api.service.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -20,6 +17,21 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(DocumentNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentNotFound(
+            DocumentNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        log.warn("Document not found: {} ({})",
+                exception.getMessage(),
+                request.getRequestURI());
+        return build(
+                HttpStatus.NOT_FOUND,
+                exception.getMessage(),
+                request
+        );
+    }
 
     @ExceptionHandler(InvalidUploadException.class)
     public ResponseEntity<ErrorResponse> handleInvalidUpload(
