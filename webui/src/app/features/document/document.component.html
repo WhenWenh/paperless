@@ -2,14 +2,53 @@
 
 <h2>Document Details</h2>
 
+@if (successMessage()) {
+  <p class="success" role="status">{{ successMessage() }}</p>
+}
 @if (loading()) {
   <p class="loading" role="status">Loading Document ...</p>
 } @else if (error()) {
   <p class="error" role="alert">{{ error() }}</p>
 } @else if (document(); as doc) {
+
   <dl>
     <dt>Title</dt>
-    <dd>{{ doc.title }}</dd>
+    <dd>
+      @if (editingTitle()) {
+        <form (ngSubmit)="updateTitle()" class="title-form">
+          <label class="sr-only" for="document-title">Document title</label>
+          <input id="document-title" name="title" type="text"
+            [(ngModel)]="editedTitle" [disabled]="savingTitle()"
+            [class.invalid]="validationError()"
+            [attr.aria-invalid]="!!validationError()"
+            [attr.aria-describedby]="validationError() || serverError() ? 'title-error' : null">
+          <div class="title-actions">
+            <button type="submit" [disabled]="savingTitle()">
+              {{ savingTitle() ? 'Saving...' : 'Save' }}
+            </button>
+            <button type="button" class="cancel" [disabled]="savingTitle()" (click)="cancelEditingTitle()">
+              Cancel
+            </button>
+          </div>
+          @if (validationError()) {
+            <p id="title-error" class="field-error" role="alert">{{ validationError() }}</p>
+          } @else if (serverError()) {
+            <p id="title-error" class="field-error" role="alert">{{ serverError() }}</p>
+          }
+        </form>
+      } @else {
+        <div class="title-display">
+          <span>{{ doc.title }}</span>
+          <button type="button" class="edit-title" aria-label="Edit document title"
+            title="Edit title" (click)="startEditingTitle()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1z"/>
+            </svg>
+          </button>
+        </div>
+      }
+    </dd>
 
     <dt>File name</dt>
     <dd>{{ doc.originalFilename }}</dd>
