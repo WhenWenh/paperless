@@ -54,7 +54,8 @@
   font-size: .85rem;
 }
 
-.form-group input.invalid {
+.form-group input.invalid,
+.file-picker.invalid {
   border: 2px solid var(--color-danger);
   background: #fff8f8;
 }
@@ -74,4 +75,38 @@
   border-radius: var(--radius);
   color: var(--color-secondary);
   background: #edf7ee;
+}
+
+.file-picker {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.file-picker button {
+  flex-shrink: 0;
+  padding: .2rem .6rem;
+  border: 1px solid #767676;
+  border-radius: 2px;
+  background: #efefef;
+  color: #111;
+  font: inherit;
+}
+
+.file-picker button:hover:not(:disabled) {
+  background: #e5e5e5;
+  border-color: #555;
+}
+
+.file-picker button:active:not(:disabled) {
+  background: #d5d5d5;
+}
+
+.file-picker span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }

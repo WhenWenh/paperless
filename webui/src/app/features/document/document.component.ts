@@ -1,4 +1,5 @@
 import { Component, OnInit, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   DocumentService,
@@ -9,7 +10,7 @@ import {TaggingComponent} from '@features/tagging/tagging.component';
 @Component({
   selector: 'app-document',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DatePipe],
   templateUrl: './document.component.html',
   styleUrl: './document.component.css'
 })
