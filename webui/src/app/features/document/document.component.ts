@@ -1,6 +1,6 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, signal, ViewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import {ActivatedRoute, RouterLink} from '@angular/router';
+import {ActivatedRoute, Router, RouterLink} from '@angular/router';
 import {
   DocumentService,
   DocumentResponse
@@ -43,11 +43,14 @@ export class DocumentComponent implements OnInit {
   validationError = signal<string | null>(null);
   serverError = signal<string | null>(null);
   readonly error = signal('');
+  readonly deleteError = signal<string | null>(null);
+  readonly deleting = signal(false);
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly documentService: DocumentService,
     private readonly validationService: ValidationService,
+    private readonly router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -119,6 +122,51 @@ export class DocumentComponent implements OnInit {
           this.serverError.set(
             err.error?.message ??
             'Failed to update title.'
+          );
+        }
+      });
+  }
+
+  @ViewChild('deleteDialog') deleteDialog?: ElementRef<HTMLDialogElement>;
+
+  openDeleteDialog(): void {
+    if (this.deleting() || this.savingTitle()) return;
+    this.deleteError.set(null);
+    this.deleteDialog?.nativeElement.showModal();
+  }
+
+  closeDeleteDialog(): void {
+    if (!this.deleting()) this.deleteDialog?.nativeElement.close();
+  }
+
+  onDeleteDialogCancel(event: Event): void {
+    if (this.deleting()) event.preventDefault();
+  }
+
+  deleteDocument(): void {
+    const doc = this.document();
+
+    if (!doc || this.deleting() || this.savingTitle()) {
+      return;
+    }
+
+    if (!this.deleteDialog?.nativeElement.open) {
+      return;
+    }
+
+    this.deleteError.set(null);
+    this.deleting.set(true);
+
+    this.documentService.deleteDocument(doc.id)
+      .pipe(finalize(() => this.deleting.set(false)))
+      .subscribe({
+        next: () => {
+          this.deleteDialog?.nativeElement.close();
+          this.router.navigate(['/tagging']);
+        },
+        error: err => {
+          this.deleteError.set(
+            err.error?.message ?? 'Failed to delete document.'
           );
         }
       });
