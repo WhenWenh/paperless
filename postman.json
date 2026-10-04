@@ -2,7 +2,8 @@
   "info": {
     "name": "Paperless API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "1.2.0"
+    "version": "1.3.0",
+    "description": "Run the complete collection in order. Creates uniquely named test data and deletes its document records/tags at the end. Set Postman's working directory to the repository root or select _docs/postman/sample.pdf manually. Newman: newman run postman.json --working-dir . . The backend currently leaves uploaded files in storage after DELETE. Do not manually set the multipart Content-Type header; the client supplies its boundary."
   },
   "variable": [
     {
@@ -14,20 +15,12 @@
       "value": "Invoice 2026"
     },
     {
-      "key": "filename",
-      "value": "invoice.pdf"
-    },
-    {
-      "key": "contentType",
-      "value": "application/pdf"
-    },
-    {
-      "key": "fileSize",
-      "value": "1024"
+      "key": "updatedTitle",
+      "value": "Updated Invoice"
     },
     {
       "key": "tagName",
-      "value": "Finance1"
+      "value": ""
     },
     {
       "key": "tagId",
@@ -36,60 +29,105 @@
     {
       "key": "documentId",
       "value": ""
+    },
+    {
+      "key": "untaggedDocumentId",
+      "value": ""
+    },
+    {
+      "key": "missingId",
+      "value": "00000000-0000-0000-0000-000000000000"
     }
   ],
   "item": [
     {
-      "name": "Tags",
+      "name": "Configuration",
       "item": [
         {
-          "name": "Create Tag",
+          "name": "Get Validation Rules",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/config/validation"
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "const json = pm.response.json();",
-                  "",
-                  "pm.test(\"Tag has id\", function () {",
-                  "    pm.expect(json).to.have.property(\"id\");",
-                  "});",
-                  "",
-                  "pm.test(\"Tag name matches\", function () {",
-                  "    pm.expect(json.name).to.eql(pm.collectionVariables.get(\"tagName\"));",
-                  "});",
-                  "",
-                  "pm.collectionVariables.set(\"tagId\", json.id);"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Validation rules\", () => { const r=pm.response.json(); pm.expect(r.maxTitleLength).to.be.above(0); pm.expect(r.maxFileSize).to.be.above(0); pm.expect(r.allowedContentTypes).to.include(\"application/pdf\"); });"
                 ]
               }
             }
-          ],
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Create Tag",
           "request": {
             "method": "POST",
+            "url": "{{baseUrl}}/api/v1/tags",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"{{tagName}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"{{tagName}}\"\n}"
+            ]
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"tagName\", \"API-test-\" + pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "[\"tagId\", \"documentId\", \"untaggedDocumentId\"].forEach(key => pm.collectionVariables.unset(key));"
+                ]
+              }
             },
-            "url": "{{baseUrl}}/api/v1/tags"
-          }
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"tagId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Tags",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/tags"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -97,97 +135,651 @@
       "name": "Documents",
       "item": [
         {
-          "name": "Create Document With Tag",
+          "name": "Upload Document With Tag",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \"{{documentTitle}}\", \"tagId\": \"{{tagId}}\"}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status code is 201\", function () {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "const json = pm.response.json();",
-                  "",
-                  "pm.test(\"Document has id\", function () {",
-                  "    pm.expect(json).to.have.property(\"id\");",
-                  "});",
-                  "",
-                  "pm.test(\"Document contains tag\", function () {",
-                  "    pm.expect(json.tagId).to.eql(pm.collectionVariables.get(\"tagId\"));",
-                  "    pm.expect(json.tagName).to.eql(pm.collectionVariables.get(\"tagName\"));",
-                  "});",
-                  "",
-                  "pm.collectionVariables.set(\"documentId\", json.id);"
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"documentId\", pm.response.json().id);",
+                  "pm.test(\"Upload metadata comes from file\", () => { const d = pm.response.json(); pm.expect(d.originalFilename).to.eql(\"sample.pdf\"); pm.expect(d.contentType).to.eql(\"application/pdf\"); pm.expect(d.fileSize).to.be.above(0); pm.expect(d.tagId).to.eql(pm.collectionVariables.get(\"tagId\")); });"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Upload Document Without Tag",
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
+            "url": "{{baseUrl}}/api/v1/documents",
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"{{documentTitle}}\",\n  \"originalFilename\": \"{{filename}}\",\n  \"contentType\": \"{{contentType}}\",\n  \"fileSize\": {{fileSize}},\n  \"tagId\": \"{{tagId}}\"\n}"
-            },
-            "url": "{{baseUrl}}/api/v1/documents"
-          }
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \"{{documentTitle}}\"}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"untaggedDocumentId\", pm.response.json().id);",
+                  "pm.test(\"No tag\", () => pm.expect(pm.response.json().tagId).to.eql(null));"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Documents",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents"
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "const json = pm.response.json();",
-                  "",
-                  "pm.test(\"Response is array\", function () {",
-                  "    pm.expect(json).to.be.an(\"array\");",
-                  "});",
-                  "",
-                  "const documentId = pm.collectionVariables.get(\"documentId\");",
-                  "",
-                  "pm.test(\"Created document exists\", function () {",
-                  "    const found = json.some(function(document) {",
-                  "        return document.id === documentId;",
-                  "    });",
-                  "",
-                  "    pm.expect(found).to.eql(true);",
-                  "});"
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Uploaded document exists\", () => pm.expect(pm.response.json().some(d => d.id === pm.collectionVariables.get(\"documentId\"))).to.eql(true));"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "GET",
-            "url": "{{baseUrl}}/api/v1/documents"
-          }
+          ]
         },
         {
           "name": "Get Document",
           "request": {
             "method": "GET",
             "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Document details\", () => { const d=pm.response.json(); pm.expect(d.id).to.eql(pm.collectionVariables.get(\"documentId\")); [\"title\",\"originalFilename\",\"contentType\",\"fileSize\",\"createdAt\",\"updatedAt\"].forEach(k => pm.expect(d).to.have.property(k)); });"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Delete Document",
+          "name": "Update Document Title",
           "request": {
-            "method": "DELETE",
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"{{updatedTitle}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Updated title\", () => pm.expect(pm.response.json().title).to.eql(pm.collectionVariables.get(\"updatedTitle\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Document After Title Update",
+          "request": {
+            "method": "GET",
             "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Title persisted\", () => pm.expect(pm.response.json().title).to.eql(pm.collectionVariables.get(\"updatedTitle\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Blank Title",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"   \"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"Title field error\", () => pm.expect(pm.response.json().details).to.have.property(\"title\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Long Title",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"xxxxxxxxxxxxxxxxxxxxx\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Update Of Missing Document",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{missingId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Valid title\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Invalid Document UUID",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/not-a-uuid",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Valid title\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Title Unchanged After Invalid Updates",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Valid title retained\", () => pm.expect(pm.response.json().title).to.eql(pm.collectionVariables.get(\"updatedTitle\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter By Tag",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents?tag={{tagName}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Matching documents only\", () => { const rows=pm.response.json(); pm.expect(rows.some(d => d.id === pm.collectionVariables.get(\"documentId\"))).to.eql(true); rows.forEach(d => pm.expect(d.tagName).to.eql(pm.collectionVariables.get(\"tagName\"))); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove Document Tag",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}/tag",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"tagId\": null}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Tag removed\", () => pm.expect(pm.response.json().tagId).to.eql(null));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Untagged Documents",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents?tag=none"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Untagged documents only\", () => { const rows=pm.response.json(); pm.expect(rows.some(d => d.id === pm.collectionVariables.get(\"documentId\"))).to.eql(true); rows.forEach(d => pm.expect(d.tagId).to.eql(null)); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Document Tag",
+          "request": {
+            "method": "PUT",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}/tag",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"tagId\": \"{{tagId}}\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Upload Validation",
+      "item": [
+        {
+          "name": "Reject Missing File",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \"{{documentTitle}}\"}",
+                  "contentType": "application/json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Missing Metadata",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Blank Upload Title",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \" \"}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Empty File",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \"{{documentTitle}}\"}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/empty.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject Unsupported File Type",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\": \"{{documentTitle}}\"}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "_docs/postman/unsupported.bin",
+                  "contentType": "application/octet-stream"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject JSON-Only Upload",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": \"Invoice\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 415\", () => pm.response.to.have.status(415));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Statistics",
+      "item": [
+        {
+          "name": "Get Tag Statistics",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/statistics/tags"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Statistics array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -195,24 +787,114 @@
       "name": "Cleanup",
       "item": [
         {
-          "name": "Delete Tag",
+          "name": "Delete Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status code is 204\", function () {",
-                  "    pm.response.to.have.status(204);",
-                  "});"
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));",
+                  "pm.test(\"Empty response\", () => pm.expect(pm.response.text()).to.eql(\"\"));"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Get Deleted Document",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted Document Absent From List",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/documents"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Document removed\", () => pm.expect(pm.response.json().some(d => d.id === pm.collectionVariables.get(\"documentId\"))).to.eql(false));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Document Again",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{documentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Untagged Test Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{untaggedDocumentId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Tag",
           "request": {
             "method": "DELETE",
             "url": "{{baseUrl}}/api/v1/tags/{{tagId}}"
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
