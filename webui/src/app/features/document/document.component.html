@@ -3,24 +3,30 @@
 <h2>Document Details</h2>
 
 @if (loading()) {
-  <p>Loading Document ...</p>
+  <p class="loading" role="status">Loading Document ...</p>
 } @else if (error()) {
-  <p>{{ error() }}</p>
+  <p class="error" role="alert">{{ error() }}</p>
 } @else if (document(); as doc) {
   <dl>
-    <dt>Titel</dt>
+    <dt>Title</dt>
     <dd>{{ doc.title }}</dd>
 
-    <dt>Dateiname</dt>
+    <dt>File name</dt>
     <dd>{{ doc.originalFilename }}</dd>
 
-    <dt>Dateityp</dt>
+    <dt>File type</dt>
     <dd>{{ doc.contentType }}</dd>
 
-    <dt>Dateigröße</dt>
+    <dt>File size</dt>
     <dd>{{ doc.fileSize }} Bytes</dd>
 
     <dt>Tag</dt>
-    <dd>{{ doc.tagName ?? 'No Tag' }}</dd>
+    <dd><span class="tag" [class.untagged]="!doc.tagName">{{ doc.tagName ?? 'No Tag' }}</span></dd>
+
+    <dt>Created at</dt>
+    <dd>{{ doc.createdAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
+
+    <dt>Last updated at</dt>
+    <dd>{{ doc.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
   </dl>
 }

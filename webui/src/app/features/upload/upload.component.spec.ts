@@ -43,7 +43,7 @@ describe('UploadComponent validation', () => {
   it('keeps upload clickable and shows both missing fields without a request', async () => {
     const fixture = TestBed.createComponent(UploadComponent);
     await fixture.whenStable();
-    const button = fixture.nativeElement.querySelector('button') as HTMLButtonElement;
+    const button = fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement;
     expect(button.disabled).toBe(false);
     button.click();
     fixture.detectChanges();

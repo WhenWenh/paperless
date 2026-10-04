@@ -14,6 +14,7 @@ import { ValidationService } from '@core/services/validation.service';
 })
 export class UploadComponent implements OnInit {
   @ViewChild('fileInput') fileInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('fileButton') fileButton?: ElementRef<HTMLButtonElement>;
   @ViewChild('titleInput') titleInput?: ElementRef<HTMLInputElement>;
 
   readonly tags = signal<TagResponse[]>([]);
@@ -85,7 +86,7 @@ export class UploadComponent implements OnInit {
 
     if (this.form.invalid) {
       if (this.form.controls.title.invalid) this.titleInput?.nativeElement.focus();
-      else this.fileInput?.nativeElement.focus();
+      else this.fileButton?.nativeElement.focus();
       return;
     }
     if (!this.validationService.getRules()) {

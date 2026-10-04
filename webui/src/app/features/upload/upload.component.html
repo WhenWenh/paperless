@@ -22,13 +22,22 @@
     </div>
 
     <div class="form-group">
-      <label for="file">Select File *</label>
-      <input #fileInput id="file" type="file" aria-required="true"
+      <label for="choose-file">Select File *</label>
+      <input #fileInput id="file" type="file" hidden
         [disabled]="isUploading()"
-        (change)="onFileSelected($event)"
-        [class.invalid]="fieldError('file')"
-        [attr.aria-invalid]="!!fieldError('file')"
-        [attr.aria-describedby]="fieldError('file') ? 'file-error' : null">
+        (change)="onFileSelected($event)">
+      <div class="file-picker" [class.invalid]="fieldError('file')">
+        <button #fileButton id="choose-file" type="button"
+          [disabled]="isUploading()"
+          (click)="fileInput.click()"
+          [attr.aria-invalid]="!!fieldError('file')"
+          [attr.aria-describedby]="fieldError('file') ? 'file-name file-error' : 'file-name'">
+          Choose File
+        </button>
+        <span id="file-name" aria-live="polite">
+          {{ form.controls.file.value?.name ?? 'No file chosen' }}
+        </span>
+      </div>
       @if (fieldError('file'); as message) {
         <p id="file-error" class="field-error" role="alert">{{ message }}</p>
       }
