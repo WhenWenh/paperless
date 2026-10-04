@@ -18,6 +18,7 @@ public interface DocumentService {
     List<DocumentDto> getAllDocuments();
     Optional<DocumentDto> getDocument(UUID id);
     void deleteDocument(UUID id);
+    DocumentDto updateDocumentTitle(UUID id, String title);
 
     List<DocumentDto> getDocumentsByTag(String tagName);
 

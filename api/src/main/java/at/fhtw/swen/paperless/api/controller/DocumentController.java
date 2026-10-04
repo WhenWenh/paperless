@@ -2,6 +2,7 @@ package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.request.CreateDocumentRequest;
 import at.fhtw.swen.paperless.api.controller.request.UpdateDocumentTagRequest;
+import at.fhtw.swen.paperless.api.controller.request.UpdateDocumentTitleRequest;
 import at.fhtw.swen.paperless.api.controller.response.DocumentResponse;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
@@ -79,6 +80,21 @@ public class DocumentController {
     public ResponseEntity<Void> deleteDocument(@PathVariable UUID id) {
         documentService.deleteDocument(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<DocumentResponse> updateDocumentTitle(
+            @PathVariable UUID id,
+            @RequestBody @Valid UpdateDocumentTitleRequest request
+    ) {
+        return ResponseEntity.ok(
+                toResponse(
+                        documentService.updateDocumentTitle(
+                                id,
+                                request.title()
+                        )
+                )
+        );
     }
 
     @PutMapping("/{id}/tag")

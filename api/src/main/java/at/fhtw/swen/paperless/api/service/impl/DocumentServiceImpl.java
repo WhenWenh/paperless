@@ -6,6 +6,7 @@ import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.persistence.repository.TagRepository;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
+import at.fhtw.swen.paperless.api.service.exception.DocumentNotFoundException;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
@@ -88,6 +89,27 @@ public class DocumentServiceImpl implements DocumentService {
     public void deleteDocument(UUID id) {
         log.debug("Deleting document with id '{}'", id);
         documentRepository.deleteById(id);
+    }
+
+    @Override
+    public DocumentDto updateDocumentTitle(
+            UUID id,
+            String title
+    ) {
+
+        documentValidationService.validateTitle(title);
+
+        Document document =
+                documentRepository.findById(id)
+                        .orElseThrow(() ->
+                                new DocumentNotFoundException(id)
+                        );
+
+        document.setTitle(title);
+
+        return documentMapper.toDto(
+                documentRepository.save(document)
+        );
     }
 
     @Override
