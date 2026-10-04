@@ -1,0 +1,67 @@
+<div class="tags">
+  <h1>Tags</h1>
+
+  <form class="add-tag" (ngSubmit)="addTag()">
+    <label for="new-tag-name">
+      Tag name:
+    </label>
+
+    <input
+      id="new-tag-name"
+      name="newTagName"
+      type="text"
+      placeholder="e.g. Rechnungen"
+      [(ngModel)]="newTagName"
+      [disabled]="creating()"
+      [class.invalid]="validationError()"
+      [attr.aria-invalid]="!!validationError()"
+      [attr.aria-describedby]="validationError() ? 'new-tag-error' : null">
+
+    <button
+      type="submit"
+      [disabled]="creating()">
+      {{ creating() ? 'Adding...' : 'Add Tag' }}
+    </button>
+  </form>
+
+  @if (validationError()) {
+    <p id="new-tag-error" class="field-error" role="alert">
+      {{ validationError() }}
+    </p>
+  }
+
+  @if (error()) {
+    <p class="error" role="alert">
+      {{ error() }}
+    </p>
+  }
+
+  @if (successMessage()) {
+    <p class="success" role="status">
+      {{ successMessage() }}
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="loading" role="status">Loading Tags ...</p>
+  } @else {
+    <ul>
+      @for (tag of tags(); track tag.id) {
+        <li>
+          <span>{{ tag.name }}</span>
+
+          <button
+            type="button"
+            class="delete-btn"
+            (click)="deleteTag(tag)"
+            [disabled]="deletingId() === tag.id"
+            [attr.aria-label]="'Delete ' + tag.name">
+            ✕
+          </button>
+        </li>
+      } @empty {
+        <li class="empty">No tags yet.</li>
+      }
+    </ul>
+  }
+</div>
