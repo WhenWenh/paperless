@@ -1,4 +1,4 @@
-<a routerLink="/dashboard">Back to Dashboard</a>
+<a routerLink="/tagging">Back to Tagging</a>
 
 <h2>Document Details</h2>
 
@@ -68,4 +68,35 @@
     <dt>Last updated at</dt>
     <dd>{{ doc.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
   </dl>
+
+  <div class="delete-actions">
+    <button type="button" class="delete-icon"
+      aria-label="Delete document" title="Delete document"
+      [disabled]="deleting() || savingTitle()" (click)="openDeleteDialog()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/>
+      </svg>
+    </button>
+  </div>
+
+  <dialog #deleteDialog class="delete-dialog"
+    aria-labelledby="delete-heading" aria-describedby="delete-description"
+    [attr.aria-busy]="deleting()" (cancel)="onDeleteDialogCancel($event)">
+    <h3 id="delete-heading">Delete document?</h3>
+    <p id="delete-description">Delete document "{{ doc.title }}"?</p>
+    <p class="delete-warning">This action cannot be undone.</p>
+    @if (deleteError()) {
+      <p class="error" role="alert">{{ deleteError() }}</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" class="cancel" autofocus
+        [disabled]="deleting()" (click)="closeDeleteDialog()">Cancel</button>
+      <button type="button" class="confirm-delete"
+        [disabled]="deleting()" (click)="deleteDocument()">
+        {{ deleting() ? 'Deleting...' : 'Delete' }}
+      </button>
+    </div>
+  </dialog>
 }

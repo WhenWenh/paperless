@@ -161,6 +161,15 @@ dd:first-of-type {
   }
 }
 
+.danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.danger:hover:not(:disabled) {
+  background: #b71c1c;
+}
+
 .title-display,
 .title-actions {
   display: flex;
@@ -252,4 +261,62 @@ dd:first-of-type {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+.delete-actions,
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .75rem;
+  margin-top: 1.5rem;
+}
+
+.delete-icon {
+  display: inline-flex;
+  padding: .5rem;
+  color: var(--color-danger);
+  background: #fff5f5;
+  border: 1px solid #f5c2c7;
+}
+
+.delete-icon:hover:not(:disabled) {
+  background: #ffebee;
+}
+
+.delete-dialog {
+  width: min(440px, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  padding: 1.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 25%);
+}
+
+.delete-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.delete-dialog h3 {
+  margin-top: 0;
+}
+
+.delete-dialog p {
+  overflow-wrap: anywhere;
+}
+
+.delete-warning {
+  color: var(--color-muted);
+  font-size: .9rem;
+}
+
+.confirm-delete {
+  background: var(--color-danger);
+  color: white;
+}
+
+.confirm-delete:hover:not(:disabled) {
+  background: #b71c1c;
 }
