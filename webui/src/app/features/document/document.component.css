@@ -320,3 +320,13 @@ dd:first-of-type {
 .confirm-delete:hover:not(:disabled) {
   background: #b71c1c;
 }
+
+.tag-form select,
+.tag-form input {
+  width: 100%;
+  min-width: 0;
+}
+
+.tag-form .new-tag {
+  display: contents;
+}

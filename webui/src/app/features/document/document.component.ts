@@ -9,6 +9,7 @@ import {
 import { finalize } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { ValidationService } from '@core/services/validation.service';
+import { TagService, TagResponse } from '@core/services/tag.service';
 
 @Component({
   selector: 'app-document',
@@ -40,6 +41,15 @@ export class DocumentComponent implements OnInit {
     this.serverError.set(null);
     this.editingTitle.set(false);
   }
+  readonly tags = signal<TagResponse[]>([]);
+  selectedTagId = signal<string | null>(null);
+  newTagName = signal('');
+  readonly editingTag = signal(false);
+  readonly savingTag = signal(false);
+  readonly creatingTag = signal(false);
+  readonly tagError = signal<string | null>(null);
+  readonly tagValidationError = signal<string | null>(null);
+
   validationError = signal<string | null>(null);
   serverError = signal<string | null>(null);
   readonly error = signal('');
@@ -50,6 +60,7 @@ export class DocumentComponent implements OnInit {
     private readonly route: ActivatedRoute,
     private readonly documentService: DocumentService,
     private readonly validationService: ValidationService,
+    private readonly tagService: TagService,
     private readonly router: Router,
   ) {}
 
@@ -62,10 +73,13 @@ export class DocumentComponent implements OnInit {
       return;
     }
 
+    this.loadTags();
+
     this.documentService.getDocument(id).subscribe({
       next: document => {
         this.document.set(document);
         this.editedTitle.set(document.title);
+        this.selectedTagId.set(document.tagId);
         this.loading.set(false);
       },
       error: err => {
@@ -77,6 +91,121 @@ export class DocumentComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private loadTags(): void {
+    this.tagService
+      .getTags()
+      .subscribe({
+        next: tags => {
+          this.tags.set(tags);
+        },
+        error: () => {
+          this.tagError.set('Failed to load tags.');
+        }
+      });
+  }
+
+  startEditingTag(): void {
+    this.selectedTagId.set(this.document()?.tagId ?? null);
+    this.newTagName.set('');
+    this.tagError.set(null);
+    this.tagValidationError.set(null);
+    this.successMessage.set(null);
+    this.editingTag.set(true);
+  }
+
+  cancelEditingTag(): void {
+    if (this.savingTag() || this.creatingTag()) return;
+    this.selectedTagId.set(this.document()?.tagId ?? null);
+    this.newTagName.set('');
+    this.tagError.set(null);
+    this.tagValidationError.set(null);
+    this.editingTag.set(false);
+  }
+
+  updateTag(): void {
+    if (this.savingTag() || this.creatingTag()) return;
+
+    const doc = this.document();
+
+    if (!doc) {
+      return;
+    }
+
+    this.tagError.set(null);
+    this.tagValidationError.set(null);
+    this.savingTag.set(true);
+
+    this.documentService
+      .updateDocumentTag(
+        doc.id,
+        this.selectedTagId()
+      )
+      .pipe(finalize(() => this.savingTag.set(false)))
+      .subscribe({
+        next: updated => {
+          this.document.set(updated);
+          this.selectedTagId.set(updated.tagId);
+          this.editingTag.set(false);
+          this.successMessage.set(
+            updated.tagName
+              ? `Tag "${updated.tagName}" assigned.`
+              : 'Tag removed.'
+          );
+        },
+        error: err => {
+          this.tagError.set(
+            err.error?.message ?? 'Failed to update tag.'
+          );
+        }
+      });
+  }
+
+  createAndSelectTag(): void {
+    if (this.creatingTag() || this.savingTag()) return;
+
+    const name = this.newTagName().trim();
+
+    this.tagError.set(null);
+    this.tagValidationError.set(null);
+
+    if (!name) {
+      this.tagValidationError.set('Tag name is required.');
+      return;
+    }
+
+    const existing = this.tags().find(tag =>
+      tag.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (existing) {
+      this.selectedTagId.set(existing.id);
+      this.newTagName.set('');
+      return;
+    }
+
+    this.creatingTag.set(true);
+
+    this.tagService
+      .createTag(name)
+      .pipe(finalize(() => this.creatingTag.set(false)))
+      .subscribe({
+        next: tag => {
+          this.tags.update(current =>
+            [...current, tag].sort((first, second) =>
+              first.name.localeCompare(second.name)
+            )
+          );
+          this.selectedTagId.set(tag.id);
+          this.newTagName.set('');
+        },
+        error: err => {
+          this.tagError.set(
+            err.error?.message ?? 'Failed to create tag.'
+          );
+        }
+      });
   }
 
   updateTitle(): void {
