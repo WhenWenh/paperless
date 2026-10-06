@@ -1,0 +1,26 @@
+@startuml
+
+entity tags {
+  * id : UUID <<PK>>
+  --
+  * name : VARCHAR(100) <<UNIQUE>>
+}
+
+entity documents {
+  * id : UUID <<PK>>
+  --
+  * owner_id : UUID
+  * title : VARCHAR(255)
+  * original_filename : VARCHAR(512)
+  * content_type : VARCHAR(127)
+  * file_size : BIGINT
+  * storage_uuid : UUID <<UNIQUE>>
+  --
+  tag_id : UUID <<FK>>
+  * created_at : TIMESTAMP WITH TIME ZONE
+  * updated_at : TIMESTAMP WITH TIME ZONE
+}
+
+tags ||--o{ documents : "has"
+
+@enduml

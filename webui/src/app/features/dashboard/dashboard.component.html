@@ -1,0 +1,17 @@
+<h2>Dashboard</h2>
+
+@if (loading()) {
+  <p>Tags are loading ...</p>
+} @else if (error()) {
+  <p>{{ error() }}</p>
+} @else {
+  <h3>Tags</h3>
+
+  <ul>
+    @for (tag of tags(); track tag.id) {
+      <li>{{ tag.name }}</li>
+    } @empty {
+      <li>No Tags available.</li>
+    }
+  </ul>
+}

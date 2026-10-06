@@ -46,6 +46,9 @@ public class Document {
     @JoinColumn(name = "tag_id")
     private Tag tag;
 
+    @Column(name = "storage_uuid", unique = true)
+    private UUID storageUuid;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();

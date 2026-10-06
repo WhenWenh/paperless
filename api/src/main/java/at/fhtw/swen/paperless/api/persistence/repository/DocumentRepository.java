@@ -13,6 +13,7 @@ import java.util.UUID;
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     List<Document> findByTag_Name(String name);
+    List<Document> findByTagIsNull();
 
     @Query("""
             SELECT new at.fhtw.swen.paperless.api.controller.response.TagStatisticsResponse(

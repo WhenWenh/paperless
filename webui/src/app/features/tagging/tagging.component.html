@@ -1,0 +1,55 @@
+<div class="tagging">
+
+  <h1>Tagging</h1>
+
+  <div class="tag-buttons">
+    @for (
+      selection of selections();
+      track selection.type + ':' + selection.id
+      ) {
+      <button
+        (click)="select(selection)"
+        [class.selected]="
+          selected().type === selection.type &&
+          selected().id === selection.id
+        ">
+        {{ selection.name }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <p>Loading Documents ...</p>
+  } @else if (error()) {
+    <div class="error" role="alert">
+      {{ error() }}
+    </div>
+  } @else {
+    <div class="documents">
+
+      @for (document of documents(); track document.id) {
+        <div
+          class="document-row"
+          (click)="openDocument(document)">
+
+          <span>
+            {{ document.title }}
+          </span>
+
+          <span class="tag">
+            {{ document.tagName || 'No Tag' }}
+          </span>
+
+          <span class="filename">
+            {{ document.originalFilename }}
+          </span>
+
+        </div>
+      } @empty {
+        <p>No Documents available</p>
+      }
+
+    </div>
+  }
+
+</div>

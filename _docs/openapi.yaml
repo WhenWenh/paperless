@@ -1,113 +1,170 @@
 openapi: 3.1.0
 info:
   title: Paperless API
-  version: 0.3.0
+  version: 0.4.0
 servers:
-  - url: http://localhost:8081
+- url: http://localhost:8081
 paths:
   /api/v1/documents:
     post:
       tags:
-        - Documents
-      summary: Create a document metadata record
+      - Documents
+      summary: Upload a document with metadata
       operationId: createDocument
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/CreateDocumentRequest"
+              type: object
+              required:
+              - metadata
+              - file
+              properties:
+                metadata:
+                  $ref: '#/components/schemas/CreateDocumentRequest'
+                file:
+                  type: string
+                  format: binary
+                  description: Non-empty uploaded file.
+            encoding:
+              metadata:
+                contentType: application/json
       responses:
-        "400":
-          description: Invalid request body or metadata. Validation errors use ErrorResponse.
-        "404":
+        '400':
+          description: Missing multipart part, invalid metadata, empty file or rejected MIME type. Handled validation
+            errors use ErrorResponse; framework errors may have a different body.
+        '404':
           description: The supplied tag does not exist.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "201":
+                $ref: '#/components/schemas/ErrorResponse'
+        '201':
           description: Document created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentResponse"
-
+                $ref: '#/components/schemas/DocumentResponse'
+        '413':
+          description: 'Multipart file/request exceeds the servlet limit (defaults: 100 MiB / 101 MiB). Framework
+            error response.'
+        '415':
+          description: Unsupported request or metadata-part content type; JSON-only POST is not accepted.
+      description: Multipart upload only; the former JSON-only POST is no longer supported. The metadata part must
+        have Content-Type application/json. Filename, content type and size are taken from the file part. Validation
+        checks non-empty content, size and the declared MIME type; it does not inspect file signatures. Query /api/v1/config/validation
+        for configured limits.
     get:
       tags:
-        - Documents
+      - Documents
       summary: List all documents
       operationId: getAllDocuments
       parameters:
-        - name: tag
-          in: query
-          description: Filter documents by exact tag name. Omit to return all documents.
-          schema:
-            type: string
-          example: Finance
+      - name: tag
+        in: query
+        description: Filter by exact tag name. The reserved value none returns documents without a tag. Omit to
+          return all documents.
+        schema:
+          type: string
+        example: Finance
       responses:
-        "200":
+        '200':
           description: List of documents.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/DocumentResponse"
-
+                  $ref: '#/components/schemas/DocumentResponse'
   /api/v1/documents/{id}:
     get:
       tags:
-        - Documents
+      - Documents
       summary: Get a document by ID
       operationId: getDocument
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        "200":
+        '200':
           description: The requested document.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentResponse"
-        "404":
+                $ref: '#/components/schemas/DocumentResponse'
+        '404':
           description: Document not found.
-
     delete:
       tags:
-        - Documents
+      - Documents
       summary: Delete a document
       operationId: deleteDocument
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
       responses:
-        "204":
-          description: Document deleted.
-
-
-  /api/v1/documents/{id}/tag:
+        '204':
+          description: Document record deleted, or already absent. No response body.
+        '400':
+          description: Invalid document UUID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      description: Current implementation deletes the database record only; the stored upload is not removed. Deleting
+        an absent ID also returns 204.
     put:
-      tags: [Documents]
-      summary: Assign, replace or remove a document tag
-      operationId: updateDocumentTag
+      tags:
+      - Documents
+      summary: Update a document title
+      operationId: updateDocumentTitle
+      description: Persists the title and updates updatedAt. Blank titles and titles over 20 characters are rejected.
       parameters:
-        - $ref: "#/components/parameters/Id"
+      - $ref: '#/components/parameters/Id'
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateDocumentTagRequest"
+              $ref: '#/components/schemas/UpdateDocumentTitleRequest'
+      responses:
+        '200':
+          description: Document with the updated title.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Invalid UUID, title or JSON body. Handled validation errors use ErrorResponse.
+        '404':
+          description: Document not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/documents/{id}/tag:
+    put:
+      tags:
+      - Documents
+      summary: Assign, replace or remove a document tag
+      operationId: updateDocumentTag
+      parameters:
+      - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDocumentTagRequest'
             examples:
               assign:
                 value:
@@ -116,24 +173,24 @@ paths:
                 value:
                   tagId: null
       responses:
-        "200":
+        '200':
           description: Document with the updated tag assignment.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/DocumentResponse"
-        "400":
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
           description: Invalid UUID or request body.
-        "404":
+        '404':
           description: Document not found (empty body), or tag not found (ErrorResponse).
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/tags:
     post:
-      tags: [Tags]
+      tags:
+      - Tags
       summary: Create a tag
       operationId: createTag
       description: Trims the name and rejects existing names ignoring case.
@@ -142,81 +199,95 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateTagRequest"
+              $ref: '#/components/schemas/CreateTagRequest'
       responses:
-        "201":
+        '201':
           description: Tag created.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TagResponse"
-        "400":
+                $ref: '#/components/schemas/TagResponse'
+        '400':
           description: Invalid request body or name. Validation errors use ErrorResponse.
-        "409":
+        '409':
           description: A tag with this name already exists, ignoring case.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
     get:
-      tags: [Tags]
-      summary: List tags alphabetically, ignoring case
+      tags:
+      - Tags
+      summary: List all tags
       operationId: getAllTags
       responses:
-        "200":
+        '200':
           description: All tags; an empty array when no tags exist.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TagResponse"
-
+                  $ref: '#/components/schemas/TagResponse'
   /api/v1/tags/{id}:
     delete:
-      tags: [Tags]
+      tags:
+      - Tags
       summary: Delete an unused tag
       operationId: deleteTag
       parameters:
-        - $ref: "#/components/parameters/Id"
+      - $ref: '#/components/parameters/Id'
       responses:
-        "204":
+        '204':
           description: Tag deleted. No response body.
-        "400":
+        '400':
           description: Invalid tag UUID.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Tag not found.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
           description: Tag is assigned to documents and cannot be deleted.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/statistics/tags:
     get:
-      tags: [Statistics]
+      tags:
+      - Statistics
       summary: Count documents per tag
       operationId: getTagStatistics
-      description: Includes tags with zero documents. Adds an Untagged entry with a null tagId only when documents without a tag exist.
+      description: Includes tags with zero documents. Adds an Untagged entry with a null tagId only when documents
+        without a tag exist.
       responses:
-        "200":
+        '200':
           description: Document counts by tag.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TagStatisticsResponse"
-
+                  $ref: '#/components/schemas/TagStatisticsResponse'
+  /api/v1/config/validation:
+    get:
+      tags:
+      - Configuration
+      summary: Read current upload validation rules
+      operationId: validationRules
+      responses:
+        '200':
+          description: Configured title length, maximum file size in bytes and allowed MIME types.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationRulesResponse'
 components:
   parameters:
     Id:
@@ -230,50 +301,30 @@ components:
     CreateDocumentRequest:
       type: object
       required:
-        - title
-        - originalFilename
-        - contentType
-        - fileSize
+      - title
       properties:
         title:
           type: string
           minLength: 1
-          maxLength: 255
+          maxLength: 20
           pattern: '\S'
-          example: Testrechnung
-        originalFilename:
-          type: string
-          minLength: 1
-          maxLength: 512
-          pattern: '\S'
-          example: rechnung.pdf
-        contentType:
-          type: string
-          minLength: 1
-          maxLength: 127
-          pattern: '\S'
-          example: application/pdf
-        fileSize:
-          type: integer
-          format: int64
-          minimum: 0
-          example: 1024
-
+          example: Invoice 2026
         tagId:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
-          description: Optional existing tag to assign. Omitted or null means no tag.
-
+          description: Optional existing tag ID; null or omitted means no tag.
     DocumentResponse:
       type: object
       required:
-        - id
-        - title
-        - originalFilename
-        - contentType
-        - fileSize
-        - createdAt
-        - updatedAt
+      - id
+      - title
+      - originalFilename
+      - contentType
+      - fileSize
+      - createdAt
+      - updatedAt
       properties:
         id:
           type: string
@@ -294,33 +345,39 @@ components:
           type: string
           format: date-time
         tagId:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         tagName:
-          type: [string, "null"]
-
+          type:
+          - string
+          - 'null'
     UpdateDocumentTagRequest:
       type: object
       properties:
         tagId:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
           description: Existing tag ID. Null or omitted removes the current assignment.
-
     CreateTagRequest:
       type: object
-      required: [name]
+      required:
+      - name
       properties:
         name:
           type: string
           minLength: 1
           maxLength: 50
-          pattern: '\S'
+          pattern: \S
           example: Finance
-
     TagResponse:
       type: object
-      required: [id, name]
+      required:
+      - id
+      - name
       properties:
         id:
           type: string
@@ -328,13 +385,17 @@ components:
         name:
           type: string
           example: Finance
-
     TagStatisticsResponse:
       type: object
-      required: [tagId, tagName, documentCount]
+      required:
+      - tagId
+      - tagName
+      - documentCount
       properties:
         tagId:
-          type: [string, "null"]
+          type:
+          - string
+          - 'null'
           format: uuid
         tagName:
           type: string
@@ -343,10 +404,14 @@ components:
           type: integer
           format: int64
           minimum: 0
-
     ErrorResponse:
       type: object
-      required: [timestamp, status, error, message, path]
+      required:
+      - timestamp
+      - status
+      - error
+      - message
+      - path
       properties:
         timestamp:
           type: string
@@ -363,7 +428,44 @@ components:
           type: string
           example: /api/v1/tags
         details:
-          type: [object, "null"]
+          type:
+          - object
+          - 'null'
           additionalProperties:
             type: string
           description: Field validation errors, or null for other handled errors.
+    UpdateDocumentTitleRequest:
+      type: object
+      required:
+      - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 20
+          pattern: '\S'
+          example: Invoice 2026
+    ValidationRulesResponse:
+      type: object
+      required:
+      - maxTitleLength
+      - maxFileSize
+      - allowedContentTypes
+      properties:
+        maxTitleLength:
+          type: integer
+          example: 20
+        maxFileSize:
+          type: integer
+          format: int64
+          description: Maximum file size in bytes.
+          example: 104857600
+        allowedContentTypes:
+          type: array
+          items:
+            type: string
+          example:
+          - application/pdf
+          - image/jpeg
+          - image/png
+          - text/plain

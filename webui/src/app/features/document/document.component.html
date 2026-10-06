@@ -1,0 +1,154 @@
+<a routerLink="/tagging">Back to Tagging</a>
+
+<h2>Document Details</h2>
+
+@if (successMessage()) {
+  <p class="success" role="status">{{ successMessage() }}</p>
+}
+@if (loading()) {
+  <p class="loading" role="status">Loading Document ...</p>
+} @else if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+} @else if (document(); as doc) {
+
+  <dl>
+    <dt>Title</dt>
+    <dd>
+      @if (editingTitle()) {
+        <form (ngSubmit)="updateTitle()" class="title-form">
+          <label class="sr-only" for="document-title">Document title</label>
+          <input id="document-title" name="title" type="text"
+            [(ngModel)]="editedTitle" [disabled]="savingTitle()"
+            [class.invalid]="validationError()"
+            [attr.aria-invalid]="!!validationError()"
+            [attr.aria-describedby]="validationError() || serverError() ? 'title-error' : null">
+          <div class="title-actions">
+            <button type="submit" [disabled]="savingTitle()">
+              {{ savingTitle() ? 'Saving...' : 'Save' }}
+            </button>
+            <button type="button" class="cancel" [disabled]="savingTitle()" (click)="cancelEditingTitle()">
+              Cancel
+            </button>
+          </div>
+          @if (validationError()) {
+            <p id="title-error" class="field-error" role="alert">{{ validationError() }}</p>
+          } @else if (serverError()) {
+            <p id="title-error" class="field-error" role="alert">{{ serverError() }}</p>
+          }
+        </form>
+      } @else {
+        <div class="title-display">
+          <span>{{ doc.title }}</span>
+          <button type="button" class="edit-title" aria-label="Edit document title"
+            title="Edit title" (click)="startEditingTitle()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1z"/>
+            </svg>
+          </button>
+        </div>
+      }
+    </dd>
+
+    <dt>File name</dt>
+    <dd>{{ doc.originalFilename }}</dd>
+
+    <dt>File type</dt>
+    <dd>{{ doc.contentType }}</dd>
+
+    <dt>File size</dt>
+    <dd>{{ doc.fileSize }} Bytes</dd>
+
+    <dt>Tag</dt>
+    <dd>
+      @if (editingTag()) {
+        <form (ngSubmit)="updateTag()" class="title-form tag-form">
+          <label class="sr-only" for="document-tag">Tag</label>
+          <select id="document-tag" name="tag"
+            [ngModel]="selectedTagId()" (ngModelChange)="selectedTagId.set($event)"
+            [disabled]="savingTag() || creatingTag()">
+            <option [ngValue]="null">No Tag</option>
+            @for (tag of tags(); track tag.id) {
+              <option [ngValue]="tag.id">{{ tag.name }}</option>
+            }
+          </select>
+
+          <div class="title-actions">
+            <button type="submit" [disabled]="savingTag() || creatingTag()">
+              {{ savingTag() ? 'Saving...' : 'Save' }}
+            </button>
+            <button type="button" class="cancel"
+              [disabled]="savingTag() || creatingTag()" (click)="cancelEditingTag()">
+              Cancel
+            </button>
+          </div>
+
+          <div class="new-tag">
+            <label class="sr-only" for="new-tag-name">New tag name</label>
+            <input id="new-tag-name" name="newTagName" type="text"
+              placeholder="Create new tag"
+              [(ngModel)]="newTagName" [disabled]="creatingTag() || savingTag()">
+            <button type="button" [disabled]="creatingTag() || savingTag()"
+              (click)="createAndSelectTag()">
+              {{ creatingTag() ? 'Creating...' : 'Create & select' }}
+            </button>
+          </div>
+
+          @if (tagValidationError()) {
+            <p class="field-error" role="alert">{{ tagValidationError() }}</p>
+          } @else if (tagError()) {
+            <p class="field-error" role="alert">{{ tagError() }}</p>
+          }
+        </form>
+      } @else {
+        <div class="title-display">
+          <span class="tag" [class.untagged]="!doc.tagName">{{ doc.tagName ?? 'No Tag' }}</span>
+          <button type="button" class="edit-title" aria-label="Edit tag"
+            title="Edit tag" (click)="startEditingTag()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1z"/>
+            </svg>
+          </button>
+        </div>
+      }
+    </dd>
+
+    <dt>Created at</dt>
+    <dd>{{ doc.createdAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
+
+    <dt>Last updated at</dt>
+    <dd>{{ doc.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
+  </dl>
+
+  <div class="delete-actions">
+    <button type="button" class="delete-icon"
+      aria-label="Delete document" title="Delete document"
+      [disabled]="deleting() || savingTitle()" (click)="openDeleteDialog()">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+        stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/>
+      </svg>
+    </button>
+  </div>
+
+  <dialog #deleteDialog class="delete-dialog"
+    aria-labelledby="delete-heading" aria-describedby="delete-description"
+    [attr.aria-busy]="deleting()" (cancel)="onDeleteDialogCancel($event)">
+    <h3 id="delete-heading">Delete document?</h3>
+    <p id="delete-description">Delete document "{{ doc.title }}"?</p>
+    <p class="delete-warning">This action cannot be undone.</p>
+    @if (deleteError()) {
+      <p class="error" role="alert">{{ deleteError() }}</p>
+    }
+    <div class="dialog-actions">
+      <button type="button" class="cancel" autofocus
+        [disabled]="deleting()" (click)="closeDeleteDialog()">Cancel</button>
+      <button type="button" class="confirm-delete"
+        [disabled]="deleting()" (click)="deleteDocument()">
+        {{ deleting() ? 'Deleting...' : 'Delete' }}
+      </button>
+    </div>
+  </dialog>
+}

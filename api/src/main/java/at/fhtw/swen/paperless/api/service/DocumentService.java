@@ -1,6 +1,8 @@
 package at.fhtw.swen.paperless.api.service;
 
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
+import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -8,10 +10,15 @@ import java.util.UUID;
 
 public interface DocumentService {
 
-    DocumentDto createDocument(DocumentDto document);
+    DocumentDto createDocument(
+            CreateDocumentCommand command,
+            MultipartFile file
+    );
+
     List<DocumentDto> getAllDocuments();
     Optional<DocumentDto> getDocument(UUID id);
     void deleteDocument(UUID id);
+    DocumentDto updateDocumentTitle(UUID id, String title);
 
     List<DocumentDto> getDocumentsByTag(String tagName);
 

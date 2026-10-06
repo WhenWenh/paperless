@@ -35,8 +35,8 @@ class TagServiceImplTest {
 
         TagDto result = tagService.createTag("  Finance  ");
 
-        assertThat(result.getId()).isEqualTo(id);
-        assertThat(result.getName()).isEqualTo("Finance");
+        assertThat(result.id()).isEqualTo(id);
+        assertThat(result.name()).isEqualTo("Finance");
         ArgumentCaptor<Tag> captor = ArgumentCaptor.forClass(Tag.class);
         verify(tagRepository).save(captor.capture());
         assertThat(captor.getValue().getName()).isEqualTo("Finance");
@@ -61,7 +61,7 @@ class TagServiceImplTest {
         Optional<TagDto> result = tagService.getTagById(id);
 
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Finance");
+        assertThat(result.get().name()).isEqualTo("Finance");
     }
 
     @Test
@@ -80,7 +80,7 @@ class TagServiceImplTest {
         Optional<TagDto> result = tagService.getTagByName("Finance");
 
         assertThat(result).isPresent();
-        assertThat(result.get().getName()).isEqualTo("Finance");
+        assertThat(result.get().name()).isEqualTo("Finance");
     }
 
     @Test
@@ -91,7 +91,7 @@ class TagServiceImplTest {
 
         List<TagDto> result = tagService.getAllTags();
 
-        assertThat(result).extracting(TagDto::getName)
+        assertThat(result).extracting(TagDto::name)
                 .containsExactly("finance", "Work");
     }
 
