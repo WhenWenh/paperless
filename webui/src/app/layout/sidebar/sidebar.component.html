@@ -21,11 +21,13 @@
     Tagging
   </a>
 
-  <hr>
+  <div class="auth-actions">
+    <hr>
 
-  @if ((isAuthenticated$ | async)?.isAuthenticated) {
-    <button (click)="logout()">Logout</button>
-  } @else {
-    <button (click)="login()">Login</button>
-  }
+    @if ((isAuthenticated$ | async)?.isAuthenticated) {
+      <button type="button" (click)="logout()">Logout</button>
+    } @else {
+      <button type="button" (click)="login()">Login</button>
+    }
+  </div>
 </nav>
