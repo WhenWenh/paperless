@@ -3,6 +3,7 @@ package at.fhtw.swen.paperless.api.service.impl;
 import at.fhtw.swen.paperless.api.controller.response.TagStatisticsResponse;
 import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import org.junit.jupiter.api.Test;
+import at.fhtw.swen.paperless.api.security.CurrentUser;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -16,6 +17,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StatisticsServiceImplTest {
+    private final UUID ownerId = UUID.randomUUID();
+    @Mock private CurrentUser currentUser;
 
     @Mock
     private DocumentRepository documentRepository;
@@ -25,10 +28,11 @@ class StatisticsServiceImplTest {
 
     @Test
     void getTagStatistics_shouldReturnStatisticsPerTag() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID tagId = UUID.randomUUID();
-        when(documentRepository.getTagStatistics())
+        when(documentRepository.getTagStatistics(ownerId))
                 .thenReturn(List.of(new TagStatisticsResponse(tagId, "Finance", 10)));
-        when(documentRepository.countDocumentsWithoutTag()).thenReturn(0L);
+        when(documentRepository.countDocumentsWithoutTag(ownerId)).thenReturn(0L);
 
         List<TagStatisticsResponse> result = statisticsService.getTagStatistics();
 
@@ -39,8 +43,9 @@ class StatisticsServiceImplTest {
 
     @Test
     void getTagStatistics_shouldIncludeUntaggedDocuments() {
-        when(documentRepository.getTagStatistics()).thenReturn(List.of());
-        when(documentRepository.countDocumentsWithoutTag()).thenReturn(3L);
+        when(currentUser.id()).thenReturn(ownerId);
+        when(documentRepository.getTagStatistics(ownerId)).thenReturn(List.of());
+        when(documentRepository.countDocumentsWithoutTag(ownerId)).thenReturn(3L);
 
         List<TagStatisticsResponse> result = statisticsService.getTagStatistics();
 
@@ -53,8 +58,9 @@ class StatisticsServiceImplTest {
 
     @Test
     void getTagStatistics_shouldNotAddUntaggedWhenNoneExist() {
-        when(documentRepository.getTagStatistics()).thenReturn(List.of());
-        when(documentRepository.countDocumentsWithoutTag()).thenReturn(0L);
+        when(currentUser.id()).thenReturn(ownerId);
+        when(documentRepository.getTagStatistics(ownerId)).thenReturn(List.of());
+        when(documentRepository.countDocumentsWithoutTag(ownerId)).thenReturn(0L);
 
         assertThat(statisticsService.getTagStatistics()).isEmpty();
     }

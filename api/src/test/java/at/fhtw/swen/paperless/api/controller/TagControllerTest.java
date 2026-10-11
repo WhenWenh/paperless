@@ -5,6 +5,11 @@ import at.fhtw.swen.paperless.api.service.dto.TagDto;
 import at.fhtw.swen.paperless.api.service.exception.TagAlreadyExistsException;
 import at.fhtw.swen.paperless.api.service.exception.TagInUseException;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
+import at.fhtw.swen.paperless.api.security.SecurityConfig;
+import at.fhtw.swen.paperless.api.security.JwtAuthenticationConverter;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -27,7 +32,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(TagController.class)
+@Import({SecurityConfig.class, JwtAuthenticationConverter.class})
 class TagControllerTest {
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Autowired
     private MockMvc mockMvc;
@@ -41,7 +49,7 @@ class TagControllerTest {
         when(tagService.createTag(anyString()))
                 .thenReturn(TagDto.builder().id(id).name("Finance").build());
 
-        mockMvc.perform(post("/api/v1/tags")
+        mockMvc.perform(post("/api/v1/tags").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "name": "Finance" }
@@ -53,7 +61,7 @@ class TagControllerTest {
 
     @Test
     void createTag_blankName_shouldReturn400() throws Exception {
-        mockMvc.perform(post("/api/v1/tags")
+        mockMvc.perform(post("/api/v1/tags").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "name": "   " }
@@ -67,7 +75,7 @@ class TagControllerTest {
 
     @Test
     void createTag_missingName_shouldReturn400() throws Exception {
-        mockMvc.perform(post("/api/v1/tags")
+        mockMvc.perform(post("/api/v1/tags").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
@@ -78,7 +86,7 @@ class TagControllerTest {
     void createTag_nameTooLong_shouldReturn400() throws Exception {
         String longName = "a".repeat(51);
 
-        mockMvc.perform(post("/api/v1/tags")
+        mockMvc.perform(post("/api/v1/tags").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{ \"name\": \"" + longName + "\" }"))
                 .andExpect(status().isBadRequest())
@@ -90,7 +98,7 @@ class TagControllerTest {
         when(tagService.createTag("finance"))
                 .thenThrow(new TagAlreadyExistsException("finance"));
 
-        mockMvc.perform(post("/api/v1/tags")
+        mockMvc.perform(post("/api/v1/tags").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "name": "finance" }
@@ -105,7 +113,7 @@ class TagControllerTest {
         when(tagService.getAllTags())
                 .thenReturn(List.of(TagDto.builder().id(id).name("Finance").build()));
 
-        mockMvc.perform(get("/api/v1/tags"))
+        mockMvc.perform(get("/api/v1/tags").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(id.toString()))
@@ -116,14 +124,14 @@ class TagControllerTest {
     void getAllTags_noTags_shouldReturnEmptyList() throws Exception {
         when(tagService.getAllTags()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/tags"))
+        mockMvc.perform(get("/api/v1/tags").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
     void deleteTag_shouldReturn204() throws Exception {
-        mockMvc.perform(delete("/api/v1/tags/" + UUID.randomUUID()))
+        mockMvc.perform(delete("/api/v1/tags/" + UUID.randomUUID()).with(jwt()))
                 .andExpect(status().isNoContent());
     }
 
@@ -132,7 +140,7 @@ class TagControllerTest {
         UUID id = UUID.randomUUID();
         doThrow(new TagNotFoundException(id)).when(tagService).deleteTag(id);
 
-        mockMvc.perform(delete("/api/v1/tags/" + id))
+        mockMvc.perform(delete("/api/v1/tags/" + id).with(jwt()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Tag not found: " + id));
     }
@@ -142,7 +150,7 @@ class TagControllerTest {
         UUID id = UUID.randomUUID();
         doThrow(new TagInUseException(id, 3)).when(tagService).deleteTag(id);
 
-        mockMvc.perform(delete("/api/v1/tags/" + id))
+        mockMvc.perform(delete("/api/v1/tags/" + id).with(jwt()))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message")
                         .value("Tag " + id + " is still assigned to 3 document(s)"));
@@ -150,8 +158,14 @@ class TagControllerTest {
 
     @Test
     void deleteTag_invalidId_shouldReturn400() throws Exception {
-        mockMvc.perform(delete("/api/v1/tags/not-a-uuid"))
+        mockMvc.perform(delete("/api/v1/tags/not-a-uuid").with(jwt()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Invalid parameter format"));
+    }
+
+    @Test
+    void getWithoutAuthentication_shouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/tags"))
+                .andExpect(status().isUnauthorized());
     }
 }

@@ -11,6 +11,7 @@ import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import org.junit.jupiter.api.Test;
+import at.fhtw.swen.paperless.api.security.CurrentUser;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
@@ -33,6 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class DocumentServiceImplTest {
+    private final UUID ownerId = UUID.randomUUID();
+    @Mock private CurrentUser currentUser;
 
     @Mock
     private DocumentRepository documentRepository;
@@ -54,6 +57,7 @@ class DocumentServiceImplTest {
 
     @Test
     void createDocument_shouldPersistFileMetadataAndReturnDto() {
+        when(currentUser.id()).thenReturn(ownerId);
         CreateDocumentCommand command = new CreateDocumentCommand("Title", null);
         UUID storageId = UUID.randomUUID();
         Document saved = Document.builder().id(UUID.randomUUID()).build();
@@ -67,6 +71,7 @@ class DocumentServiceImplTest {
         ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
         verify(documentRepository).save(captor.capture());
         Document entity = captor.getValue();
+        assertThat(entity.getOwnerId()).isEqualTo(ownerId);
         assertThat(entity.getTitle()).isEqualTo("Title");
         assertThat(entity.getOriginalFilename()).isEqualTo("file.pdf");
         assertThat(entity.getContentType()).isEqualTo("application/pdf");
@@ -78,14 +83,16 @@ class DocumentServiceImplTest {
     }
     @Test
     void getDocument_shouldReturnEmptyWhenNotFound() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
-        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.empty());
 
         assertThat(documentService.getDocument(id)).isEmpty();
     }
 
     @Test
     void getAllDocuments_shouldReturnMappedList() {
+        when(currentUser.id()).thenReturn(ownerId);
         Document doc = Document.builder()
                 .id(UUID.randomUUID())
                 .build();
@@ -99,26 +106,30 @@ class DocumentServiceImplTest {
                 .build();
 
         List<Document> documents = List.of(doc);
-        List<DocumentDto> dtos = List.of(dto);
 
-        when(documentRepository.findAll()).thenReturn(documents);
-        when(documentMapper.toDto(documents)).thenReturn(dtos);
+        when(documentRepository.findAllByOwnerId(ownerId)).thenReturn(documents);
+        when(documentMapper.toDto(doc)).thenReturn(dto);
 
         assertThat(documentService.getAllDocuments())
                 .containsExactly(dto);
 
-        verify(documentMapper).toDto(documents);
+        verify(documentMapper).toDto(doc);
     }
 
     @Test
     void deleteDocument_shouldInvokeRepository() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
+        Document document = Document.builder().id(id).ownerId(ownerId).storageUuid(UUID.randomUUID()).build();
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.of(document));
         documentService.deleteDocument(id);
-        verify(documentRepository).deleteById(id);
+        verify(documentStorageService).delete(document.getStorageUuid());
+        verify(documentRepository).delete(document);
     }
 
     @Test
     void createDocument_withTag_shouldAttachTag() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID tagId = UUID.randomUUID();
         Tag tag = new Tag();
         tag.setId(tagId);
@@ -137,6 +148,7 @@ class DocumentServiceImplTest {
 
     @Test
     void createDocument_withMissingTag_shouldThrowAndNotSave() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID tagId = UUID.randomUUID();
         CreateDocumentCommand input = new CreateDocumentCommand("Title", tagId);
 
@@ -152,10 +164,11 @@ class DocumentServiceImplTest {
 
     @Test
     void getDocumentsByTag_shouldReturnDocuments() {
+        when(currentUser.id()).thenReturn(ownerId);
         Document doc = new Document();
         DocumentDto dto = new DocumentDto(UUID.randomUUID(), "T", "f", "c", 1L, null, null, null, "Finance");
 
-        when(documentRepository.findByTag_Name("Finance")).thenReturn(List.of(doc));
+        when(documentRepository.findByOwnerIdAndTag_Name(ownerId, "Finance")).thenReturn(List.of(doc));
         when(documentMapper.toDto(doc)).thenReturn(dto);
 
         assertThat(documentService.getDocumentsByTag("Finance")).containsExactly(dto);
@@ -163,11 +176,12 @@ class DocumentServiceImplTest {
 
     @Test
     void updateDocumentTag_withNull_shouldRemoveTag() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
         Document doc = new Document();
         doc.setTag(new Tag());
 
-        when(documentRepository.findById(id)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.of(doc));
         when(documentRepository.save(doc)).thenReturn(doc);
         when(documentMapper.toDto(doc)).thenReturn(
                 new DocumentDto(id, "T", "f", "c", 1L, null, null, null, null));
@@ -178,13 +192,14 @@ class DocumentServiceImplTest {
 
     @Test
     void updateDocumentTag_withTag_shouldAssignTag() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
         UUID tagId = UUID.randomUUID();
         Document doc = new Document();
         Tag tag = new Tag();
         tag.setId(tagId);
 
-        when(documentRepository.findById(id)).thenReturn(Optional.of(doc));
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.of(doc));
         when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
         when(documentRepository.save(doc)).thenReturn(doc);
         when(documentMapper.toDto(doc)).thenReturn(
@@ -196,10 +211,11 @@ class DocumentServiceImplTest {
 
     @Test
     void updateDocumentTag_missingTag_shouldThrow() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
         UUID tagId = UUID.randomUUID();
 
-        when(documentRepository.findById(id)).thenReturn(Optional.of(new Document()));
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.of(new Document()));
         when(tagRepository.findById(tagId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> documentService.updateDocumentTag(id, tagId))
@@ -208,8 +224,9 @@ class DocumentServiceImplTest {
 
     @Test
     void updateDocumentTag_missingDocument_shouldReturnEmpty() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID id = UUID.randomUUID();
-        when(documentRepository.findById(id)).thenReturn(Optional.empty());
+        when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.empty());
 
         assertThat(documentService.updateDocumentTag(id, UUID.randomUUID())).isEmpty();
     }
@@ -225,6 +242,7 @@ class DocumentServiceImplTest {
 
     @Test
     void createDocument_databaseFailure_shouldDeleteStoredFile() {
+        when(currentUser.id()).thenReturn(ownerId);
         UUID storageId = UUID.randomUUID();
         RuntimeException failure = new IllegalStateException("Database unavailable");
         when(documentStorageService.store(file)).thenReturn(storageId);
@@ -244,11 +262,12 @@ class DocumentServiceImplTest {
 
     @Test
     void getDocumentsByTag_none_shouldReturnUntaggedDocuments() {
+        when(currentUser.id()).thenReturn(ownerId);
         Document document = new Document();
         DocumentDto dto = DocumentDto.builder().title("Untagged").build();
-        when(documentRepository.findByTagIsNull()).thenReturn(List.of(document));
+        when(documentRepository.findByOwnerIdAndTagIsNull(ownerId)).thenReturn(List.of(document));
         when(documentMapper.toDto(document)).thenReturn(dto);
         assertThat(documentService.getDocumentsByTag("none")).containsExactly(dto);
-        verify(documentRepository, never()).findByTag_Name(any());
+        verify(documentRepository, never()).findByOwnerIdAndTag_Name(any(), any());
     }
 }

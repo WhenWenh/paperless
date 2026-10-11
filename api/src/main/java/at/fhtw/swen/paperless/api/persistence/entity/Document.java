@@ -24,6 +24,9 @@ public class Document {
     @Column(name = "id", nullable = false, updatable = false)
     private UUID id;
 
+    @Column(name = "owner_id", nullable = false, updatable = false)
+    private UUID ownerId;
+
     @Column(name = "title", nullable = false, length = 255)
     private String title;
 

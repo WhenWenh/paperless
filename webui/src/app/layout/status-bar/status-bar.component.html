@@ -1,0 +1,21 @@
+<div class="status">
+
+  <span>
+    API:
+    <strong [class.up]="status() === 'UP'"
+            [class.down]="status() === 'DOWN'">
+      {{ status() }}
+    </strong>
+  </span>
+
+
+  @if (user(); as currentUser) {
+    <span class="user">
+    User:
+    <strong>
+      {{ currentUser.userData.name }}
+    </strong>
+  </span>
+  }
+
+</div>

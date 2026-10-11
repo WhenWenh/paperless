@@ -19,6 +19,19 @@ spring:
       ddl-auto: validate
     show-sql: false
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://keycloak:8080/realms/paperless/protocol/openid-connect/certs
+
+logging:
+  level:
+    at.fhtw.swen.paperless: DEBUG
+    org.springframework: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36}.%M - %msg%n"
+
 paperless:
   upload:
     max-file-size: 100MB

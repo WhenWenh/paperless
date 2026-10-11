@@ -12,6 +12,7 @@ import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import at.fhtw.swen.paperless.api.security.CurrentUser;
 import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class DocumentServiceImpl implements DocumentService {
     private final TagRepository tagRepository;
     private final DocumentStorageService documentStorageService;
     private final DocumentValidationService documentValidationService;
+    private final CurrentUser currentUser;
 
     @Override
     public DocumentDto createDocument(
@@ -50,6 +52,7 @@ public class DocumentServiceImpl implements DocumentService {
         try {
             Document entity = new Document();
 
+            entity.setOwnerId(currentUser.id());
             entity.setTitle(command.title());
             entity.setOriginalFilename(file.getOriginalFilename());
             entity.setContentType(file.getContentType());
@@ -76,19 +79,32 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDto> getAllDocuments() {
-        return documentMapper.toDto(documentRepository.findAll());
+        return documentRepository
+                .findAllByOwnerId(currentUser.id())
+                .stream()
+                .map(documentMapper::toDto)
+                .toList();
     }
 
     @Override
     public Optional<DocumentDto> getDocument(UUID id) {
-        return documentRepository.findById(id)
+        return documentRepository
+                .findByIdAndOwnerId(id, currentUser.id())
                 .map(documentMapper::toDto);
     }
 
     @Override
     public void deleteDocument(UUID id) {
-        log.debug("Deleting document with id '{}'", id);
-        documentRepository.deleteById(id);
+        log.debug(
+                "Deleting document {}",
+                id
+        );
+        Document document = documentRepository
+                .findByIdAndOwnerId(id, currentUser.id())
+                .orElseThrow(() -> new DocumentNotFoundException(id));
+
+        documentStorageService.delete(document.getStorageUuid());
+        documentRepository.delete(document);
     }
 
     @Override
@@ -100,7 +116,7 @@ public class DocumentServiceImpl implements DocumentService {
         documentValidationService.validateTitle(title);
 
         Document document =
-                documentRepository.findById(id)
+                documentRepository.findByIdAndOwnerId(id, currentUser.id())
                         .orElseThrow(() ->
                                 new DocumentNotFoundException(id)
                         );
@@ -114,20 +130,23 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDto> getDocumentsByTag(String tagName) {
-        if ("none".equals(tagName)) {
-            return documentRepository.findByTagIsNull().stream()
-                    .map(documentMapper::toDto)
-                    .toList();
-        }
+        List<Document> documents = "none".equals(tagName)
+                ? documentRepository.findByOwnerIdAndTagIsNull(
+                currentUser.id()
+        )
+                : documentRepository.findByOwnerIdAndTag_Name(
+                currentUser.id(),
+                tagName
+        );
 
-        return documentRepository.findByTag_Name(tagName).stream()
+        return documents.stream()
                 .map(documentMapper::toDto)
                 .toList();
     }
 
     @Override
     public Optional<DocumentDto> updateDocumentTag(UUID id, UUID tagId) {
-        return documentRepository.findById(id)
+        return documentRepository.findByIdAndOwnerId(id, currentUser.id())
                 .map(document -> {
                     if (tagId == null) {
                         document.setTag(null);
