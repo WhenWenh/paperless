@@ -1,6 +1,6 @@
 // environments/environment.ts
 export const environment = {
-  apiUrl: '',
+  apiUrl: 'http://localhost:8081',
 
   oidc: {
     authority: 'http://localhost:9445/realms/paperless',
