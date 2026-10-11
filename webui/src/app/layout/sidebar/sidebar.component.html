@@ -20,4 +20,12 @@
   <a routerLink="/tagging" routerLinkActive="active" ariaCurrentWhenActive="page">
     Tagging
   </a>
+
+  <hr>
+
+  @if ((isAuthenticated$ | async)?.isAuthenticated) {
+    <button (click)="logout()">Logout</button>
+  } @else {
+    <button (click)="login()">Login</button>
+  }
 </nav>

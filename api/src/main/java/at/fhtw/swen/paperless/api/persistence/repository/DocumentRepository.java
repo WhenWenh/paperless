@@ -7,13 +7,27 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
-    List<Document> findByTag_Name(String name);
-    List<Document> findByTagIsNull();
+    Optional<Document> findByIdAndOwnerId(
+            UUID id,
+            UUID ownerId
+    );
+
+    List<Document> findAllByOwnerId(
+            UUID ownerId
+    );
+
+    List<Document> findByOwnerIdAndTag_Name(
+            UUID ownerId,
+            String name
+    );
+
+    List<Document> findByOwnerIdAndTagIsNull(UUID ownerId);
 
     @Query("""
             SELECT new at.fhtw.swen.paperless.api.controller.response.TagStatisticsResponse(
@@ -24,15 +38,21 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
             FROM Tag t
             LEFT JOIN Document d
                 ON d.tag = t
+               AND d.ownerId = :ownerId
             GROUP BY t.id, t.name
             ORDER BY t.name
             """)
-    List<TagStatisticsResponse> getTagStatistics();
+    List<TagStatisticsResponse> getTagStatistics(
+            UUID ownerId
+    );
 
     @Query("""
             SELECT COUNT(d)
             FROM Document d
-            WHERE d.tag IS NULL
+            WHERE d.ownerId = :ownerId
+              AND d.tag IS NULL
             """)
-    long countDocumentsWithoutTag();
+    long countDocumentsWithoutTag(
+            UUID ownerId
+    );
 }

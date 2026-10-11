@@ -7,11 +7,16 @@ CREATE TABLE tags (
 
 CREATE TABLE documents (
                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Keycloak user ID (JWT "sub" claim)
+                           owner_id UUID NOT NULL,
+
                            title VARCHAR(255) NOT NULL,
                            original_filename VARCHAR(512) NOT NULL,
                            content_type VARCHAR(127) NOT NULL,
                            file_size BIGINT NOT NULL DEFAULT 0,
 
+    -- UUID used as filename in the storage backend
                            storage_uuid UUID UNIQUE,
 
                            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -23,5 +28,6 @@ CREATE TABLE documents (
                                    REFERENCES tags(id)
 );
 
+CREATE INDEX idx_documents_owner_id ON documents(owner_id);
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at);
 CREATE INDEX IF NOT EXISTS idx_documents_tag_id ON documents(tag_id);

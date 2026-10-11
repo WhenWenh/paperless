@@ -14,7 +14,7 @@ class DocumentRepositoryTest {
 
     @Test
     void saveAndFind_shouldPersistMetadataAndGenerateIdAndTimestamps() {
-        Document document = Document.builder()
+        Document document = Document.builder().ownerId(java.util.UUID.randomUUID())
                 .title("Test")
                 .originalFilename("test.pdf")
                 .contentType("application/pdf")
@@ -37,7 +37,7 @@ class DocumentRepositoryTest {
 
     @Test
     void delete_shouldRemoveDocument() {
-        Document doc = Document.builder()
+        Document doc = Document.builder().ownerId(java.util.UUID.randomUUID())
                 .title("ToDelete")
                 .originalFilename("d.pdf")
                 .contentType("application/pdf")
