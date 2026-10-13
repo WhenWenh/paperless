@@ -19,6 +19,25 @@ services:
     networks:
       - paperless_network
 
+  rabbitmq:
+    image: rabbitmq:4.3.2-management-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${RABBITMQ_MANAGE_PORT}:15672"
+      - "127.0.0.1:${RABBITMQ_PORT}:5672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - paperless_network
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
     restart: unless-stopped

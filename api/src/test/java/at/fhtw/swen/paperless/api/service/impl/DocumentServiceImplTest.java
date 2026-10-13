@@ -3,6 +3,7 @@ package at.fhtw.swen.paperless.api.service.impl;
 import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
 import at.fhtw.swen.paperless.api.persistence.repository.TagRepository;
 import at.fhtw.swen.paperless.api.persistence.entity.Tag;
@@ -10,12 +11,15 @@ import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
-import org.junit.jupiter.api.Test;
 import at.fhtw.swen.paperless.api.security.CurrentUser;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
+
+import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
+import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+
 import org.springframework.mock.web.MockMultipartFile;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.Mockito.*;
@@ -23,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.UUID;
@@ -46,8 +51,14 @@ class DocumentServiceImplTest {
     @Mock
     private TagRepository tagRepository;
 
-    @Mock private DocumentStorageService documentStorageService;
-    @Mock private DocumentValidationService documentValidationService;
+    @Mock
+    private DocumentStorageService documentStorageService;
+
+    @Mock
+    private DocumentValidationService documentValidationService;
+
+    @Mock
+    private DocumentEventPublisher documentEventPublisher;
 
     private final MockMultipartFile file =
             new MockMultipartFile("file", "file.pdf", "application/pdf", new byte[]{1, 2, 3});
@@ -60,7 +71,14 @@ class DocumentServiceImplTest {
         when(currentUser.id()).thenReturn(ownerId);
         CreateDocumentCommand command = new CreateDocumentCommand("Title", null);
         UUID storageId = UUID.randomUUID();
-        Document saved = Document.builder().id(UUID.randomUUID()).build();
+        Document saved = Document.builder()
+                .id(UUID.randomUUID())
+                .title("Title")
+                .originalFilename("file.pdf")
+                .contentType("application/pdf")
+                .storageUuid(storageId)
+                .build();
+
         DocumentDto output = DocumentDto.builder().id(saved.getId()).title("Title").build();
         when(documentStorageService.store(file)).thenReturn(storageId);
         when(documentRepository.save(any(Document.class))).thenReturn(saved);
@@ -80,6 +98,15 @@ class DocumentServiceImplTest {
         assertThat(entity.getTag()).isNull();
         verify(documentValidationService).validateCreate(command, file);
         verify(documentStorageService, never()).delete(any());
+        verify(documentEventPublisher).publishDocumentUploaded(
+                new DocumentUploadedMessage(
+                        "Title",
+                        "file.pdf",
+                        "application/pdf",
+                        saved.getId(),
+                        storageId
+                )
+        );
     }
     @Test
     void getDocument_shouldReturnEmptyWhenNotFound() {
