@@ -37,6 +37,7 @@ volumes:
   paperless-pg-data:
   paperless-storage:
   keycloak-data:
+  rabbitmq-data:
 
 networks:
   paperless_network:
