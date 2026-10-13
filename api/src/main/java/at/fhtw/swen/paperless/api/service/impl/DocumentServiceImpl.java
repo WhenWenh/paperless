@@ -13,6 +13,10 @@ import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.security.CurrentUser;
+
+import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
+import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+
 import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
@@ -30,10 +34,14 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
-    private final TagRepository tagRepository;
     private final DocumentStorageService documentStorageService;
     private final DocumentValidationService documentValidationService;
+
+    private final TagRepository tagRepository;
+
     private final CurrentUser currentUser;
+
+    private final DocumentEventPublisher documentEventPublisher;
 
     @Override
     public DocumentDto createDocument(
@@ -69,6 +77,16 @@ public class DocumentServiceImpl implements DocumentService {
             }
 
             Document saved = documentRepository.save(entity);
+
+            documentEventPublisher.publishDocumentUploaded(
+                    new DocumentUploadedMessage(
+                            saved.getTitle(),
+                            saved.getOriginalFilename(),
+                            saved.getContentType(),
+                            saved.getId(),
+                            saved.getStorageUuid()
+                    )
+            );
 
             return documentMapper.toDto(saved);
         } catch (RuntimeException exception) {

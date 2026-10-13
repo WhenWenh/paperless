@@ -21,7 +21,6 @@
         <module>share</module>
         <module>api</module>
         <module>ocr</module>
-        <module>ocr</module>
     </modules>
 
     <dependencies>

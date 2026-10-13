@@ -8,6 +8,9 @@ import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.exception.DocumentNotFoundException;
 import at.fhtw.swen.paperless.api.service.impl.DocumentServiceImpl;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
+
+import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +37,17 @@ class DocumentOwnershipTest {
     void setUp() {
         CurrentUser user = mock(CurrentUser.class);
         when(user.id()).thenReturn(owner);
-        service = new DocumentServiceImpl(documents, new DocumentMapper(), tags,
-                storage, mock(DocumentValidationService.class), user);
+
+        service = new DocumentServiceImpl(
+                documents,
+                new DocumentMapper(),
+                storage,
+                mock(DocumentValidationService.class),
+                tags,
+                user,
+                mock(DocumentEventPublisher.class)
+        );
+
         ownDocument = saveDocument(owner, "Own");
         foreignDocument = saveDocument(otherOwner, "Foreign");
     }
