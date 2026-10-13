@@ -25,6 +25,12 @@ spring:
         jwt:
           jwk-set-uri: http://keycloak:8080/realms/paperless/protocol/openid-connect/certs
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+
 logging:
   level:
     at.fhtw.swen.paperless: DEBUG
