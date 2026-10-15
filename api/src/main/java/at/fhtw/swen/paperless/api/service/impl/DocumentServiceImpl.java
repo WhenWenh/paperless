@@ -18,6 +18,7 @@ import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
 import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
 
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,8 @@ public class DocumentServiceImpl implements DocumentService {
 
         UUID storageUuid = documentStorageService.store(file);
 
+        Document saved;
+
         try {
             Document entity = new Document();
 
@@ -76,8 +79,29 @@ public class DocumentServiceImpl implements DocumentService {
                 entity.setTag(tag);
             }
 
-            Document saved = documentRepository.save(entity);
+            saved = documentRepository.save(entity);
 
+        } catch (RuntimeException exception) {
+            try {
+                documentStorageService.delete(storageUuid);
+            } catch (RuntimeException cleanupException) {
+                exception.addSuppressed(cleanupException);
+
+                log.error(
+                        "Failed to clean up uploaded file: {}",
+                        storageUuid,
+                        cleanupException
+                );
+            }
+
+            throw exception;
+        }
+
+        DocumentDto result = documentMapper.toDto(saved);
+
+        if (MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(
+                saved.getContentType()
+        )) {
             documentEventPublisher.publishDocumentUploaded(
                     new DocumentUploadedMessage(
                             saved.getTitle(),
@@ -87,12 +111,9 @@ public class DocumentServiceImpl implements DocumentService {
                             saved.getStorageUuid()
                     )
             );
-
-            return documentMapper.toDto(saved);
-        } catch (RuntimeException exception) {
-            documentStorageService.delete(storageUuid);
-            throw exception;
         }
+
+        return result;
     }
 
     @Override

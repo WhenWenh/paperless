@@ -10,8 +10,8 @@ public class OcrJobPublishException extends RuntimeException {
     ) {
         super(
                 "Document " + documentId
-                        + " was saved, but OCR job delivery "
-                        + "could not be confirmed.",
+                        + " was saved, but an error occurred "
+                        + "while publishing its OCR job.",
                 cause
         );
     }
