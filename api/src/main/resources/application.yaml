@@ -31,6 +31,12 @@ spring:
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
 
+    publisher-confirm-type: correlated
+    publisher-returns: true
+
+    template:
+      mandatory: true
+
 logging:
   level:
     at.fhtw.swen.paperless: DEBUG
