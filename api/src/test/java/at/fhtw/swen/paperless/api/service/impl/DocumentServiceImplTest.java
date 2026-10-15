@@ -4,6 +4,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import at.fhtw.swen.paperless.api.service.exception.OcrJobPublishException;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
 import at.fhtw.swen.paperless.api.persistence.repository.TagRepository;
 import at.fhtw.swen.paperless.api.persistence.entity.Tag;
@@ -187,6 +188,7 @@ class DocumentServiceImplTest {
                 .isInstanceOf(TagNotFoundException.class);
         verify(documentRepository, never()).save(any());
         verify(documentStorageService).delete(storageId);
+        verifyNoInteractions(documentEventPublisher);
     }
 
     @Test
@@ -265,6 +267,7 @@ class DocumentServiceImplTest {
         assertThatThrownBy(() -> documentService.createDocument(command, file))
                 .isInstanceOf(InvalidUploadException.class);
         verifyNoInteractions(documentStorageService, documentRepository, tagRepository);
+        verifyNoInteractions(documentEventPublisher);
     }
 
     @Test
@@ -277,6 +280,7 @@ class DocumentServiceImplTest {
         assertThatThrownBy(() -> documentService.createDocument(new CreateDocumentCommand("Title", null), file))
                 .isSameAs(failure);
         verify(documentStorageService).delete(storageId);
+        verifyNoInteractions(documentEventPublisher);
     }
 
     @Test
@@ -285,6 +289,7 @@ class DocumentServiceImplTest {
         assertThatThrownBy(() -> documentService.createDocument(new CreateDocumentCommand("Title", null), file))
                 .isInstanceOf(IllegalStateException.class);
         verifyNoInteractions(documentRepository);
+        verifyNoInteractions(documentEventPublisher);
     }
 
     @Test
@@ -296,5 +301,87 @@ class DocumentServiceImplTest {
         when(documentMapper.toDto(document)).thenReturn(dto);
         assertThat(documentService.getDocumentsByTag("none")).containsExactly(dto);
         verify(documentRepository, never()).findByOwnerIdAndTag_Name(any(), any());
+    }
+
+    @Test
+    void createDocument_nonPdf_shouldNotPublishOcrJob() {
+        CreateDocumentCommand command =
+                new CreateDocumentCommand("Image", null);
+
+        MockMultipartFile image = new MockMultipartFile(
+                "file",
+                "image.png",
+                "image/png",
+                new byte[]{1, 2, 3}
+        );
+
+        UUID storageId = UUID.randomUUID();
+
+        when(currentUser.id()).thenReturn(ownerId);
+        when(documentStorageService.store(image)).thenReturn(storageId);
+
+        when(documentRepository.save(any(Document.class)))
+                .thenAnswer(invocation -> {
+                    Document document = invocation.getArgument(0);
+                    document.setId(UUID.randomUUID());
+                    return document;
+                });
+
+        DocumentDto output = DocumentDto.builder()
+                .title("Image")
+                .build();
+
+        when(documentMapper.toDto(any(Document.class)))
+                .thenReturn(output);
+
+        assertThat(documentService.createDocument(command, image))
+                .isEqualTo(output);
+
+        verify(documentRepository).save(any(Document.class));
+        verifyNoInteractions(documentEventPublisher);
+    }
+
+    @Test
+    void createDocument_publishFailure_shouldKeepStoredDocument() {
+        CreateDocumentCommand command =
+                new CreateDocumentCommand("Title", null);
+
+        UUID documentId = UUID.randomUUID();
+        UUID storageId = UUID.randomUUID();
+
+        Document saved = Document.builder()
+                .id(documentId)
+                .title("Title")
+                .originalFilename("file.pdf")
+                .contentType("application/pdf")
+                .storageUuid(storageId)
+                .build();
+
+        DocumentDto output = DocumentDto.builder()
+                .id(documentId)
+                .title("Title")
+                .build();
+
+        when(currentUser.id()).thenReturn(ownerId);
+        when(documentStorageService.store(file)).thenReturn(storageId);
+        when(documentRepository.save(any(Document.class))).thenReturn(saved);
+        when(documentMapper.toDto(saved)).thenReturn(output);
+
+        OcrJobPublishException failure = new OcrJobPublishException(
+                documentId,
+                new IllegalStateException("RabbitMQ unavailable")
+        );
+
+        doThrow(failure)
+                .when(documentEventPublisher)
+                .publishDocumentUploaded(any(DocumentUploadedMessage.class));
+
+        assertThatThrownBy(
+                () -> documentService.createDocument(command, file)
+        ).isSameAs(failure);
+
+        verify(documentRepository).save(any(Document.class));
+        verify(documentStorageService, never()).delete(any());
+        verify(documentRepository, never()).delete(any(Document.class));
     }
 }
