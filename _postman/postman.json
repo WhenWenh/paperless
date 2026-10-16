@@ -3,7 +3,7 @@
     "name": "Paperless API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.3.0",
-    "description": "Run the complete collection in order. Creates uniquely named test data and deletes its document records/tags at the end. Set Postman's working directory to the repository root or select _docs/postman/sample.pdf manually. Newman: newman run postman.json --working-dir . . The backend currently leaves uploaded files in storage after DELETE. Do not manually set the multipart Content-Type header; the client supplies its boundary."
+    "description": "Run Authentication first, then the CRUD/OCR requests and Cleanup. Authentication obtains a fresh token from the development Keycloak test user. Working directory: _postman. Docker: bash tests-newman.sh. For OCR only: bash tests-newman.sh --folder Authentication --folder \"OCR Testing\". See README.md in _postman. Multipart boundaries are generated automatically. HTTP assertions do not verify RabbitMQ queue contents."
   },
   "variable": [
     {
@@ -37,9 +37,121 @@
     {
       "key": "missingId",
       "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "Valid Keycloak access token without Bearer prefix. Set locally; do not commit credentials."
+    },
+    {
+      "key": "ocrPdfDocumentId",
+      "value": "",
+      "type": "string",
+      "description": "Set by the valid PDF OCR test."
+    },
+    {
+      "key": "ocrPngDocumentId",
+      "value": "",
+      "type": "string",
+      "description": "Set by the valid PNG OCR test."
+    },
+    {
+      "key": "keycloakUrl",
+      "value": "http://localhost:9445"
+    },
+    {
+      "key": "clientId",
+      "value": "paperless-postman"
+    },
+    {
+      "key": "clientSecret",
+      "value": "paperless-postman-secret"
+    },
+    {
+      "key": "username",
+      "value": "test"
+    },
+    {
+      "key": "password",
+      "value": "test"
     }
   ],
   "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login as test user",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"accessToken\");",
+                  "pm.environment.unset(\"accessToken\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login succeeds\", () => pm.response.to.have.status(200));",
+                  "let body = {}; try { body = pm.response.json(); } catch (_) {}",
+                  "pm.test(\"Access token received\", () => pm.expect(body.access_token).to.be.a(\"string\").and.not.empty);",
+                  "if (pm.response.code === 200 && body.access_token) {",
+                  "  pm.collectionVariables.set(\"accessToken\", body.access_token);",
+                  "} else {",
+                  "  pm.execution.setNextRequest(null);",
+                  "  throw new Error(\"Keycloak login failed. Check test user and client credentials.\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{clientSecret}}",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "{{username}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{password}}",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": "{{keycloakUrl}}/realms/paperless/protocol/openid-connect/token",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
     {
       "name": "Configuration",
       "item": [
@@ -151,7 +263,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/sample.pdf",
+                  "src": "sample.pdf",
                   "contentType": "application/pdf"
                 }
               ]
@@ -188,7 +300,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/sample.pdf",
+                  "src": "sample.pdf",
                   "contentType": "application/pdf"
                 }
               ]
@@ -601,7 +713,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/sample.pdf",
+                  "src": "sample.pdf",
                   "contentType": "application/pdf"
                 }
               ]
@@ -636,7 +748,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/sample.pdf",
+                  "src": "sample.pdf",
                   "contentType": "application/pdf"
                 }
               ]
@@ -671,7 +783,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/empty.pdf",
+                  "src": "empty.pdf",
                   "contentType": "application/pdf"
                 }
               ]
@@ -706,7 +818,7 @@
                 {
                   "key": "file",
                   "type": "file",
-                  "src": "_docs/postman/unsupported.bin",
+                  "src": "unsupported.bin",
                   "contentType": "application/octet-stream"
                 }
               ]
@@ -776,6 +888,254 @@
                 "exec": [
                   "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
                   "pm.test(\"Statistics array\", () => pm.expect(pm.response.json()).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "OCR Testing",
+      "description": "US-17: six independent upload requests with automatic HTTP assertions. Set collection/environment variable accessToken to a valid Keycloak access token (without Bearer prefix). Set Postman working directory to the _postman directory. File bodies use sample.pdf, ocr-sample.png and ocr-empty.pdf; select these manually if Postman does not resolve the relative paths. Run in order. For queue verification stop OCR first and ensure consumers=0; record messages_ready before and after each request. Only the valid PDF increases it by 1. These tests do not call the RabbitMQ management API. Restart OCR after the queue check. The full collection Cleanup folder deletes the two created document IDs; running only this folder leaves those documents available for inspection.",
+      "item": [
+        {
+          "name": "01 - Valid PDF - 201",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 201. Manual RabbitMQ check: messages_ready delta +1 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. This creates a real document; its ID is saved in ocrPdfDocumentId. The Cleanup folder deletes it during a full collection run.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\":\"OCR PDF Test\",\"tagId\":null}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"ocrPdfDocumentId\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  const document = pm.response.json();",
+                  "  pm.test(\"Document ID is a UUID\", () => pm.expect(document.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                  "  pm.test(\"Uploaded MIME type\", () => pm.expect(document.contentType).to.eql(\"application/pdf\"));",
+                  "  pm.test(\"Uploaded title\", () => pm.expect(document.title).to.eql(\"OCR PDF Test\"));",
+                  "  pm.test(\"Non-empty stored file\", () => pm.expect(document.fileSize).to.be.above(0));",
+                  "  if (typeof document.id === \"string\") pm.collectionVariables.set(\"ocrPdfDocumentId\", document.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Allowed PNG - 201",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 201. Manual RabbitMQ check: messages_ready delta 0 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. This creates a real document; its ID is saved in ocrPngDocumentId. The Cleanup folder deletes it during a full collection run.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\":\"OCR PNG Test\",\"tagId\":null}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "ocr-sample.png",
+                  "contentType": "image/png"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.unset(\"ocrPngDocumentId\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) {",
+                  "  const document = pm.response.json();",
+                  "  pm.test(\"Document ID is a UUID\", () => pm.expect(document.id).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i));",
+                  "  pm.test(\"Uploaded MIME type\", () => pm.expect(document.contentType).to.eql(\"image/png\"));",
+                  "  pm.test(\"Uploaded title\", () => pm.expect(document.title).to.eql(\"OCR PNG Test\"));",
+                  "  pm.test(\"Non-empty stored file\", () => pm.expect(document.fileSize).to.be.above(0));",
+                  "  if (typeof document.id === \"string\") pm.collectionVariables.set(\"ocrPngDocumentId\", document.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03 - Metadata Without File - 400",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 400. Manual RabbitMQ check: messages_ready delta 0 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. Intentionally invalid request; no OCR job should be created.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\":\"OCR Metadata Test\",\"tagId\":null}",
+                  "contentType": "application/json"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04 - JSON Only - 415",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 415. Manual RabbitMQ check: messages_ready delta 0 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. Intentionally invalid request; no OCR job should be created.",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"OCR JSON Test\",\n  \"tagId\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 415\", () => pm.response.to.have.status(415));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "05 - Empty File - 400",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 400. Manual RabbitMQ check: messages_ready delta 0 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. Intentionally invalid request; no OCR job should be created.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\":\"OCR Empty Test\",\"tagId\":null}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "ocr-empty.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "06 - Invalid Title - 400",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/v1/documents",
+            "description": "US-17. Expected HTTP 400. Manual RabbitMQ check: messages_ready delta 0 with OCR stopped, no other consumers and no parallel uploads. Queue behavior is NOT asserted by these HTTP tests. Intentionally invalid request; no OCR job should be created.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "metadata",
+                  "type": "text",
+                  "value": "{\"title\":\"\",\"tagId\":null}",
+                  "contentType": "application/json"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "sample.pdf",
+                  "contentType": "application/pdf"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
                 ]
               }
             }
@@ -854,7 +1214,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Status 204\", () => pm.response.to.have.status(204));"
+                  "pm.test(\"Status 404\", () => pm.response.to.have.status(404));"
                 ]
               }
             }
@@ -895,8 +1255,76 @@
               }
             }
           ]
+        },
+        {
+          "name": "Delete OCR PDF Test Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{ocrPdfDocumentId}}",
+            "description": "Deletes only the document ID captured by the corresponding successful OCR test. Skipped if that upload did not produce an ID."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"ocrPdfDocumentId\")) { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Cleanup returns 204 or already absent 404\", () => pm.expect(pm.response.code).to.be.oneOf([204, 404]));",
+                  "if ([204, 404].includes(pm.response.code)) pm.collectionVariables.unset(\"ocrPdfDocumentId\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete OCR PNG Test Document",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/documents/{{ocrPngDocumentId}}",
+            "description": "Deletes only the document ID captured by the corresponding successful OCR test. Skipped if that upload did not produce an ID."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"ocrPngDocumentId\")) { pm.execution.skipRequest(); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Cleanup returns 204 or already absent 404\", () => pm.expect(pm.response.code).to.be.oneOf([204, 404]));",
+                  "if ([204, 404].includes(pm.response.code)) pm.collectionVariables.unset(\"ocrPngDocumentId\");"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
-  ]
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  }
 }
