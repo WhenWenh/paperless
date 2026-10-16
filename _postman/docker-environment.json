@@ -1,0 +1,15 @@
+{
+  "name": "docker",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://api:8081",
+      "enabled": true
+    },
+    {
+      "key": "keycloakUrl",
+      "value": "http://keycloak:8080",
+      "enabled": true
+    }
+  ]
+}

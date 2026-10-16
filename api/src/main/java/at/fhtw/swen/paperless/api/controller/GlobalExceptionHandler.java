@@ -152,4 +152,16 @@ public class GlobalExceptionHandler {
                         )
                 );
     }
+
+    @ExceptionHandler(OcrJobPublishException.class)
+    public ResponseEntity<ErrorResponse> handleOcrJobPublish(
+            OcrJobPublishException exception,
+            HttpServletRequest request
+    ) {
+        return build(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                exception.getMessage(),
+                request
+        );
+    }
 }

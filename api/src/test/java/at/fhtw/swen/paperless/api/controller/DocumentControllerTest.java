@@ -6,6 +6,7 @@ import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.security.SecurityConfig;
 import at.fhtw.swen.paperless.api.security.JwtAuthenticationConverter;
+import at.fhtw.swen.paperless.api.service.exception.OcrJobPublishException;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -220,5 +221,29 @@ class DocumentControllerTest {
     void getWithoutAuthentication_shouldReturn401() throws Exception {
         mockMvc.perform(get("/api/v1/documents"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createDocument_publishFailure_shouldReturn503() throws Exception {
+        UUID documentId = UUID.randomUUID();
+
+        OcrJobPublishException failure = new OcrJobPublishException(
+                documentId,
+                new IllegalStateException("RabbitMQ unavailable")
+        );
+
+        when(documentService.createDocument(any(), any()))
+                .thenThrow(failure);
+
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .with(jwt())
+                                .file(metadata("{\"title\":\"Title\"}"))
+                                .file(file())
+                )
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(
+                        jsonPath("$.message").value(failure.getMessage())
+                );
     }
 }
