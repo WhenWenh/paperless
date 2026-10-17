@@ -1,0 +1,256 @@
+project:
+  name: Paperless
+
+  sprints:
+
+    - id: 1
+      title: Project-Setup, REST API, DAL (with Mapping)
+
+      tasks:
+        - id: 1
+          description: Java
+
+        - id: 2
+          description: Remote Repository setup, all team members are able to commit/push
+
+        - id: 3
+          description: REST Server created, endpoints defined by the team (code-first)
+
+        - id: 4
+          description: >
+            ORM is integrated to persist the entities on the PostgreSQL database,
+            use the repository pattern
+
+        - id: 5
+          description: >
+            Show correct function with unit-tests,
+            mock out the "production" database
+
+        - id: 6
+          description: >
+            Initial docker-compose.yml, used to run the REST-server
+            & database inside containers
+
+        - id: 7
+          description: >
+            Implement document categorization using tags.
+            Introduce the additional entity Tag to categorize documents.
+            Allow documents to be assigned to a tag and provide REST endpoints
+            for creating, querying, and managing tags. Persist the document-tag
+            relationship using ORM.
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 1")
+
+      must_have_check_criteria:
+        - No build error
+        - Servers (REST & PostgreSQL) start successfully
+        - REST Endpoints functioning, data is persisted in DB
+
+    - id: 2
+      title: (Web-)UI
+
+      tasks:
+        - id: 1
+          description: Webserver service (nginx) integrated
+
+        - id: 2
+          description: >
+            Implement the UI as WebSite including user-input validation
+
+        - id: 3
+          description: Dashboard and detail-pages are served by the webserver
+
+        - id: 4
+          description: The webpage communicates with the REST server
+
+        - id: 5
+          description: >
+            Extend docker-compose.yml to run the UI
+            in an additional container
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 2")
+
+      must_have_check_criteria:
+        - No build error (docker compose build)
+        - docker compose up successfully starts containers
+        - GET http://localhost/ returns the functioning paperless-frontend
+
+      additional_requirement:
+        - Keycloak server in docker-compose
+        - Oauth2 implemented in modern spring-boot way
+        
+    - id: 3
+      title: Queues integration (RabbitMQ)
+
+      tasks:
+        - id: 1
+          description: Extend docker-compose.yml to run RabbitMQ in a container
+
+        - id: 2
+          description: Integrate queues into REST Server
+
+        - id: 3
+          description: >
+            On document upload the REST Server should also send a message
+            to RabbitMQ.
+          subtasks:
+            - Message is processed by an "empty" OCR-worker
+
+        - id: 4
+          description: >
+            Failure/exception handling
+            (with layer-specific exceptions) implemented
+
+        - id: 5
+          description: Logging in remarkable/critical positions integrated
+
+        - id: 6
+          description: Prepare for the mid-term Code Review
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 3")
+
+      must_have_check_criteria:
+        - No build error (docker compose build)
+        - docker compose up starts all containers successfully
+        - >
+          POST http://localhost/... with a PDF document leads to a
+          log entry at the worker service
+          (for later processing in Sprint 4)
+
+    - id: 4
+      title: Worker Services (OCR, MinIO, ELK)
+
+      tasks:
+        - id: 1
+          description: Create additional applications for running the worker services
+
+        - id: 2
+          description: >
+            Tesseract with Ghostscript
+            (or equivalent) integrated and working
+
+        - id: 3
+          description: Extend REST Server to store PDF documents in MinIO
+
+        - id: 4
+          description: >
+            Implement the OCR worker service
+          subtasks:
+            - Retrieve messages from the queue
+            - Fetch original PDF document from MinIO
+            - Perform OCR recognition
+
+        - id: 5
+          description: Elasticsearch integrated in worker service
+
+        - id: 6
+          description: >
+            Implement the indexing worker to store the OCR result
+            in Elasticsearch
+
+        - id: 7
+          description: >
+            Extend docker-compose.yml to run MinIO,
+            OCR service and ELK in containers
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 4")
+
+      must_have_check_criteria:
+        - No build error (docker compose build)
+        - docker compose up starts all required containers
+        - >
+          HelloWorld.pdf uploaded via the Paperless frontend
+          (http://localhost/)
+        - >
+          Searching for "Hello" via http://localhost/
+          returns HelloWorld.pdf
+
+    - id: 5
+      title: Generative AI Integration
+
+      tasks:
+        - id: 1
+          description: >
+            Extend docker-compose.yml to include
+            configuration for the GenAI service
+
+        - id: 2
+          description: Add a new GenAI worker service
+
+        - id: 3
+          description: On document upload, after OCR is complete
+          subtasks:
+            - Send extracted text to a GenAI API (Google Gemini)
+            - Receive a summary as response
+
+        - id: 4
+          description: Extend REST Server to store the summary in the database
+
+        - id: 5
+          description: Logging in critical positions integrated
+
+        - id: 6
+          description: Exceptions and API failures handled properly
+
+        - id: 7
+          description: Generate a smartphone app using AI coding tools
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 5")
+
+      must_have_check_criteria:
+        - No build error
+        - docker compose up starts all required containers
+        - POST http://localhost:8080/... with a PDF document
+        - Summary is generated with GenAI
+        - Summary is stored in the database
+        - Smartphone app is available and working
+
+    - id: 6
+      title: Integration-Test, Batch-Processing, Finalization
+
+      tasks:
+        - id: 1
+          description: >
+            Show functionality of a complete user story/epic
+            with an integration test
+
+        - id: 2
+          description: >
+            Create an additional application for the scheduled
+            batch processing service
+          subtasks:
+            - Process access logs from an input folder
+            - Define an XML format and provide sample files
+            - Store results in PostgreSQL
+            - Configure schedule, folder and filename patterns
+            - Archive/remove processed files
+
+        - id: 3
+          description: Project finalization
+
+        - id: 4
+          description: Prepare for the final code review
+
+      assignment: >
+        Submit the ZIP-Archive containing the full project on-time
+        (see Moodle Course: "Submission – Sprint 6")
+
+      must_have_check_criteria:
+        - No build error
+        - docker compose up starts all required containers
+        - >
+          Provided integration test (documented in README.md)
+          executes successfully from start to finish
+        - >
+          Batch process successfully reads the sample XML,
+          processes the data and persists it in PostgreSQL
