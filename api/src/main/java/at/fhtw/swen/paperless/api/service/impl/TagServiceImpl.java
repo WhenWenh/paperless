@@ -8,7 +8,9 @@ import at.fhtw.swen.paperless.api.service.exception.TagAlreadyExistsException;
 import at.fhtw.swen.paperless.api.service.exception.TagInUseException;
 import at.fhtw.swen.paperless.api.service.exception.TagNotFoundException;
 import at.fhtw.swen.paperless.api.service.mapper.TagMapper;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;

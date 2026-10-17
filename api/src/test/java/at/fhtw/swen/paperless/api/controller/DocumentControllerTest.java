@@ -78,8 +78,21 @@ class DocumentControllerTest {
 
     @Test
     void createDocument_shouldRejectMissingFile() throws Exception {
-        mockMvc.perform(multipart("/api/v1/documents").with(jwt()).file(metadata("{\"title\":\"Title\"}")))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .file(metadata("{\"title\":\"Title\"}"))
+                                .with(jwt())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Missing request part: file"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
         verifyNoInteractions(documentService);
     }
 
@@ -102,11 +115,23 @@ class DocumentControllerTest {
 
     @Test
     void createDocument_jsonOnly_shouldReturn415() throws Exception {
-        mockMvc.perform(post("/api/v1/documents").with(jwt()).contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Title\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+        mockMvc.perform(
+                        post("/api/v1/documents")
+                                .with(jwt())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"title\":\"Title\"}")
+                )
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.message")
+                        .value("Unsupported request content type"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
         verifyNoInteractions(documentService);
     }
+
     @Test
     void getDocument_shouldReturn404WhenMissing() throws Exception {
         UUID id = UUID.randomUUID();
@@ -244,6 +269,51 @@ class DocumentControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(
                         jsonPath("$.message").value(failure.getMessage())
+                );
+    }
+
+    @Test
+    void createDocument_invalidJson_shouldReturn400() throws Exception {
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .file(metadata("{\"title\":"))
+                                .file(file())
+                                .with(jwt())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid JSON or request body"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
+        verifyNoInteractions(documentService);
+    }
+
+    @Test
+    void getAllDocuments_unexpectedFailure_shouldReturnSafe500()
+            throws Exception {
+
+        when(documentService.getAllDocuments())
+                .thenThrow(new IllegalStateException(
+                        "INTERNAL_DETAIL: database-password"
+                ));
+
+        mockMvc.perform(
+                        get("/api/v1/documents").with(jwt())
+                )
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("Unexpected error"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.stackTrace").doesNotExist())
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentAsString()
+                        ).doesNotContain("INTERNAL_DETAIL", "database-password")
                 );
     }
 }
