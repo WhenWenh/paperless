@@ -97,6 +97,13 @@ public class DocumentServiceImpl implements DocumentService {
             throw exception;
         }
 
+        log.info(
+                "Document upload saved: documentId={}, storageUuid={}, contentType={}",
+                saved.getId(),
+                saved.getStorageUuid(),
+                saved.getContentType()
+        );
+
         DocumentDto result = documentMapper.toDto(saved);
 
         if (MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(

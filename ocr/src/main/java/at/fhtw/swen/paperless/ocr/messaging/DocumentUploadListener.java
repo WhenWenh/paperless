@@ -23,6 +23,14 @@ public class DocumentUploadListener {
                     message.storageUuid()
             );
 
+            log.info(
+                    "Start processing OCR job for: title: {}, documentId={}, storageUuid={}, contentType={}",
+                    message.title(),
+                    message.documentId(),
+                    message.storageUuid(),
+                    message.contentType()
+            );
+
             process(message);
 
             log.info(
