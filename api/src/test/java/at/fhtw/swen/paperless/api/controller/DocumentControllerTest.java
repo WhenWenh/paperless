@@ -290,4 +290,30 @@ class DocumentControllerTest {
 
         verifyNoInteractions(documentService);
     }
+
+    @Test
+    void getAllDocuments_unexpectedFailure_shouldReturnSafe500()
+            throws Exception {
+
+        when(documentService.getAllDocuments())
+                .thenThrow(new IllegalStateException(
+                        "INTERNAL_DETAIL: database-password"
+                ));
+
+        mockMvc.perform(
+                        get("/api/v1/documents").with(jwt())
+                )
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("Unexpected error"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.stackTrace").doesNotExist())
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentAsString()
+                        ).doesNotContain("INTERNAL_DETAIL", "database-password")
+                );
+    }
 }

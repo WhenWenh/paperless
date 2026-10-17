@@ -207,4 +207,22 @@ public class GlobalExceptionHandler {
                 request
         );
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(
+            Exception exception,
+            HttpServletRequest request
+    ) {
+        log.error(
+                "Unhandled error while processing {}",
+                request.getRequestURI(),
+                exception
+        );
+
+        return build(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected error",
+                request
+        );
+    }
 }
