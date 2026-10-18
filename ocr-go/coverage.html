@@ -1,0 +1,526 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>worker: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">paperless/ocr-go/cmd/worker/config.go (0.0%)</option>
+				
+				<option value="file1">paperless/ocr-go/cmd/worker/health.go (0.0%)</option>
+				
+				<option value="file2">paperless/ocr-go/cmd/worker/main.go (0.0%)</option>
+				
+				<option value="file3">paperless/ocr-go/cmd/worker/processor.go (28.0%)</option>
+				
+				<option value="file4">paperless/ocr-go/cmd/worker/worker.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "errors"  // Erstellt einfache Fehlerwerte.
+        "net"     // Verbindet Host und Port korrekt.
+        "net/url" // Erstellt eine korrekt kodierte Verbindungs-URL.
+        "os"      // Liest Umgebungsvariablen.
+)
+
+type Config struct {
+        RabbitHost     string
+        RabbitPort     string
+        RabbitUser     string
+        RabbitPassword string
+        HealthAddress  string
+}
+
+func loadConfig() (Config, error) {
+        // := legt eine Variable an und leitet ihren Typ automatisch ab.
+        <span class="cov0" title="0">config := Config{
+                RabbitHost: envOrDefault("RABBITMQ_HOST", "localhost"),
+
+                RabbitPort: envOrDefault("RABBITMQ_PORT", "5672"),
+
+                RabbitUser:     os.Getenv("RABBITMQ_USER"),
+                RabbitPassword: os.Getenv("RABBITMQ_PASSWORD"),
+
+                HealthAddress: ":8082",
+</span>        }
+
+        <span class="cov0" title="0">if config.RabbitUser == "" || config.RabbitPassword == "" </span>{
+                <span class="cov0" title="0">return Config{}, errors.New(
+                        "RABBITMQ_USER and RABBITMQ_PASSWORD are required",
+                )
+</span>        }
+
+        <span class="cov0" title="0">return config, nil</span>
+}
+
+func (config Config) rabbitURL() string {
+        <span class="cov0" title="0">address := url.URL{
+                // Verbindungsprotokoll.
+                Scheme: "amqp",
+
+                // Beispielsweise "rabbitmq:5672".
+                Host: net.JoinHostPort(
+                        config.RabbitHost,
+                        config.RabbitPort,
+                ),
+
+                // Kodiert auch Sonderzeichen in Zugangsdaten korrekt.
+                User: url.UserPassword(
+                        config.RabbitUser,
+                        config.RabbitPassword,
+                ),
+
+                // Standard-Virtual-Host "/".
+                Path: "/",
+</span>        }
+
+        // URL-Objekt in einen String umwandeln.
+        <span class="cov0" title="0">return address.String()
+</span>}
+
+// Liest einen Wert oder liefert den angegebenen Standardwert.
+func envOrDefault(name, fallback string) string {
+        <span class="cov0" title="0">value := os.Getenv(name)
+</span>
+        <span class="cov0" title="0">if value == "" </span>{
+                <span class="cov0" title="0">return fallback
+</span>        }
+
+        <span class="cov0" title="0">return value</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "net"      // TCP-Port öffnen.
+        "net/http" // HTTP-Server und Antworten.
+        "time"     // Timeout konfigurieren.
+)
+
+// ready ist eine übergebene Funktion, die Bereitschaft prüft.
+// Rückgabe: Server, Fehlerkanal, möglicher Startfehler.
+func startHealthServer(
+        address string,
+        ready func() bool,
+) (*http.Server, &lt;-chan error, error) {
+        // Port sofort öffnen, damit Portkonflikte sofort auffallen.
+        <span class="cov0" title="0">listener, err := net.Listen("tcp", address)
+        if err != nil </span>{
+                <span class="cov0" title="0">return nil, nil, err
+</span>        }
+
+        // HTTP-Router anlegen.
+        <span class="cov0" title="0">mux := http.NewServeMux()
+</span>
+        // Handler für GET /health registrieren.
+        <span class="cov0" title="0">mux.HandleFunc("/health", func(
+                writer http.ResponseWriter,
+                request *http.Request,
+        ) </span>{
+                // Zustand über die übergebene Funktion prüfen.
+                <span class="cov0" title="0">if !ready() </span>{
+                        <span class="cov0" title="0">http.Error(
+                                writer,
+                                "RabbitMQ unavailable",
+                                http.StatusServiceUnavailable,
+                        )
+                        return
+</span>                }
+
+                // Antwortformat bekanntgeben.
+                <span class="cov0" title="0">writer.Header().Set("Content-Type", "application/json")
+</span>
+                // Ohne vorherigen Fehlerstatus wird HTTP 200 gesendet.
+                // _ ignoriert die Anzahl geschriebener Bytes.
+                <span class="cov0" title="0">_, _ = writer.Write([]byte(`{"status":"UP"}`))</span>
+        })
+
+        // HTTP-Server konfigurieren.
+        <span class="cov0" title="0">server := &amp;http.Server{
+                Handler: mux,
+
+                // Clients dürfen nicht unbegrenzt lange Header übertragen.
+                ReadHeaderTimeout: 5 * time.Second,
+</span>        }
+
+        // Gepufferter Kanal für einen Serverfehler.
+        <span class="cov0" title="0">serverErrors := make(chan error, 1)
+</span>
+        // Goroutine: Server parallel zum RabbitMQ-Consumer ausführen.
+        <span class="cov0" title="0">go func() </span>{
+                <span class="cov0" title="0">serverErrors &lt;- server.Serve(listener)
+</span>        }()
+
+        <span class="cov0" title="0">return server, serverErrors, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "context"   // Gemeinsames Signal zum Beenden.
+        "log/slog"  // Strukturiertes Logging.
+        "os"        // Standardausgabe und Exit-Code.
+        "os/signal" // Betriebssystemsignale empfangen.
+        "syscall"   // Enthält SIGTERM für Docker-Stopp.
+)
+
+func main() {
+        // Logs als JSON auf die Standardausgabe schreiben.
+        // Docker sammelt diese Ausgabe für "docker compose logs".
+        <span class="cov0" title="0">slog.SetDefault(
+                slog.New(slog.NewJSONHandler(os.Stdout, nil)),
+        )
+</span>
+        // Context wird beendet, wenn Ctrl+C oder SIGTERM eintrifft.
+        <span class="cov0" title="0">ctx, stop := signal.NotifyContext(
+                context.Background(),
+                os.Interrupt,
+                syscall.SIGTERM,
+        )
+</span>
+        // Beim regulären Verlassen der Funktion Signalbehandlung aufräumen.
+        <span class="cov0" title="0">defer stop()
+</span>
+        // Konfiguration aus config.go laden.
+        <span class="cov0" title="0">config, err := loadConfig()
+</span>
+        // Go behandelt erwartbare Fehler über Rückgabewerte.
+        <span class="cov0" title="0">if err != nil </span>{
+                <span class="cov0" title="0">slog.Error("Invalid configuration", "error", err)
+</span>
+                <span class="cov0" title="0">os.Exit(1)
+</span>        }
+
+        // Verbindung, Consumer und Healthcheck starten.
+        <span class="cov0" title="0">if err := runWorker(ctx, config); err != nil </span>{
+                <span class="cov0" title="0">slog.Error("OCR worker stopped", "error", err)
+                os.Exit(1)
+</span>        }
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package main
+
+import (
+        "context"       // Ermöglicht Abbruch beim Herunterfahren.
+        "encoding/json" // Entspricht hier dem JSON-Konverter.
+        "errors"        // Einfache Fehler erzeugen.
+        "fmt"           // Fehler mit zusätzlichem Kontext umschließen.
+        "log/slog"      // Logging.
+        "time"          // Pause vor erneuter Zustellung.
+
+        amqp "github.com/rabbitmq/amqp091-go"
+)
+
+func decodeMessage(body []byte) (DocumentUploadedMessage, error) {
+        <span class="cov8" title="1">var message DocumentUploadedMessage
+</span>
+        // &amp;message übergibt die Adresse der Struktur.
+        // Unmarshal kann dadurch deren Felder befüllen.
+        <span class="cov8" title="1">if err := json.Unmarshal(body, &amp;message); err != nil </span>{
+                // Keine vollständige Nachricht im Fehlertext ausgeben.
+                <span class="cov8" title="1">return message, errors.New("invalid OCR message JSON")
+</span>        }
+
+        <span class="cov8" title="1">if message.DocumentID == "" || message.StorageUUID == "" </span>{
+                <span class="cov8" title="1">return message, errors.New(
+                        "documentId and storageUuid are required",
+                )
+</span>        }
+
+        <span class="cov8" title="1">if message.ContentType != "application/pdf" </span>{
+                <span class="cov0" title="0">return message, errors.New("expected application/pdf")
+</span>        }
+
+        <span class="cov8" title="1">return message, nil</span>
+}
+
+func processDocument(message DocumentUploadedMessage) error {
+        <span class="cov0" title="0">slog.Info(
+                "Start processing OCR job",
+                "documentTitle", message.Title,
+                "documentId", message.DocumentID,
+                "documentName", message.Filename,
+                "storageUuid", message.StorageUUID,
+                "contentType", message.ContentType,
+        )
+</span>
+        // TODO: PDF laden und OCR-Engine aufrufen.
+
+        <span class="cov0" title="0">return nil
+</span>}
+
+func handleDelivery(
+        ctx context.Context,
+        delivery amqp.Delivery,
+) error {
+        <span class="cov0" title="0">message, processingErr := decodeMessage(delivery.Body)
+</span>
+        <span class="cov0" title="0">if processingErr == nil </span>{
+                <span class="cov0" title="0">slog.Info(
+                        "OCR job received",
+                        "documentId", message.DocumentID,
+                        "storageUuid", message.StorageUUID,
+                        "redelivered", delivery.Redelivered,
+                )
+</span>
+                // Ergebnis der Verarbeitung merken.
+                <span class="cov0" title="0">processingErr = processDocument(message)
+</span>        }
+
+        <span class="cov0" title="0">if processingErr != nil </span>{
+                <span class="cov0" title="0">slog.Error(
+                        "OCR job failed; returning message to queue",
+                        "documentId", message.DocumentID,
+                        "storageUuid", message.StorageUUID,
+                        "error", processingErr,
+                )
+</span>
+                <span class="cov0" title="0">select </span>{
+                case &lt;-ctx.Done():
+                        <span class="cov0" title="0">return ctx.Err()</span>
+
+                case &lt;-time.After(2 * time.Second):<span class="cov0" title="0"></span>
+                        // Nach der Pause weiter zur Rückgabe der Nachricht.
+                }
+
+                // false: nur diese Nachricht.
+                // true: erneut in die Queue stellen.
+                <span class="cov0" title="0">if err := delivery.Nack(false, true); err != nil </span>{
+                        <span class="cov0" title="0">return fmt.Errorf("request redelivery: %w", err)
+</span>                }
+
+                // Der Verarbeitungsfehler wurde behandelt.
+                // Das bedeutet NICHT, dass die OCR erfolgreich war.
+                <span class="cov0" title="0">return nil</span>
+        }
+
+        // Verarbeitung erfolgreich: einzelne Nachricht bestätigen.
+        <span class="cov0" title="0">if err := delivery.Ack(false); err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("acknowledge OCR job: %w", err)
+</span>        }
+
+        <span class="cov0" title="0">slog.Info(
+                "OCR placeholder completed; acknowledgement sent",
+                "documentId", message.DocumentID,
+                "storageUuid", message.StorageUUID,
+        )
+</span>
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package main
+
+import (
+        "context"  // Stoppsignal.
+        "errors"   // Einfache Fehlerwerte.
+        "fmt"      // Fehler mit Kontext.
+        "log/slog" // Logging.
+
+        amqp "github.com/rabbitmq/amqp091-go"
+)
+
+func runWorker(ctx context.Context, config Config) error {
+        // Verbindung zu RabbitMQ herstellen.
+        <span class="cov0" title="0">connection, err := amqp.Dial(config.rabbitURL())
+        if err != nil </span>{
+                <span class="cov0" title="0">return errors.New(
+                        "RabbitMQ connection failed; check broker and configuration",
+                )
+</span>        }
+
+        // Verbindung beim Verlassen dieser Funktion schließen.
+        <span class="cov0" title="0">defer connection.Close()
+</span>
+        // AMQP-Kanal innerhalb der Verbindung öffnen.
+        <span class="cov0" title="0">channel, err := connection.Channel()
+        if err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("open RabbitMQ channel: %w", err)
+</span>        }
+        <span class="cov0" title="0">defer channel.Close()
+</span>
+        // Entspricht new Queue(QueueNames.DOCUMENT_UPLOAD_QUEUE, true).
+        <span class="cov0" title="0">queue, err := channel.QueueDeclare(
+                documentUploadQueue, // "document.uploaded"
+                true,                // dauerhaft
+                false,               // nicht automatisch löschen
+                false,               // nicht exklusiv
+                false,               // Bestätigung der Deklaration abwarten
+                nil,                 // keine zusätzlichen Queue-Argumente
+        )
+        if err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("declare upload queue: %w", err)
+</span>        }
+
+        // Maximal eine unbestätigte Nachricht für diesen Consumer.
+        <span class="cov0" title="0">if err := channel.Qos(1, 0, false); err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("configure prefetch: %w", err)
+</span>        }
+
+        // Consumer registrieren.
+        <span class="cov0" title="0">deliveries, err := channel.Consume(
+                queue.Name, // Queue abonnieren.
+                "",         // RabbitMQ erzeugt einen Consumer-Namen.
+                false,      // Nicht sofort automatisch bestätigen.
+                false,      // Andere Consumer wären grundsätzlich erlaubt.
+                false,      // no-local, für RabbitMQ hier false.
+                false,      // Registrierung bestätigen lassen.
+                nil,        // Keine zusätzlichen Consumer-Argumente.
+        )
+        if err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("register consumer: %w", err)
+</span>        }
+
+        // Eigenen Healthcheck starten.
+        <span class="cov0" title="0">server, serverErrors, err := startHealthServer(
+                config.HealthAddress,
+
+                // Funktion wird bei jedem Healthcheck aufgerufen.
+                func() bool </span>{
+                        <span class="cov0" title="0">return !connection.IsClosed() &amp;&amp; !channel.IsClosed()
+</span>                },
+        )
+        <span class="cov0" title="0">if err != nil </span>{
+                <span class="cov0" title="0">return fmt.Errorf("start health server: %w", err)
+</span>        }
+
+        // HTTP-Server beim Beenden schließen.
+        <span class="cov0" title="0">defer server.Close()
+</span>
+        <span class="cov0" title="0">slog.Info(
+                "OCR worker ready",
+                "queue", queue.Name,
+        )
+</span>
+        // Ohne Bedingung ist for eine Endlosschleife.
+        <span class="cov0" title="0">for </span>{
+                // Auf eines der folgenden Ereignisse warten.
+                <span class="cov0" title="0">select </span>{
+                case &lt;-ctx.Done():
+                        // Ctrl+C oder Docker-Stopp.
+                        <span class="cov0" title="0">slog.Info("OCR worker shutting down")
+                        return nil</span>
+
+                case err := &lt;-serverErrors:
+                        // Health-Server unerwartet beendet.
+                        <span class="cov0" title="0">return fmt.Errorf("health server stopped: %w", err)</span>
+
+                case delivery, open := &lt;-deliveries:
+                        // open=false bedeutet: Zustellungsstrom geschlossen.
+                        <span class="cov0" title="0">if !open </span>{
+                                <span class="cov0" title="0">return errors.New(
+                                        "RabbitMQ delivery stream closed",
+                                )
+</span>                        }
+
+                        // Entspricht dem Aufruf deiner receive(...)-Methode.
+                        <span class="cov0" title="0">if err := handleDelivery(ctx, delivery); err != nil </span>{
+                                // Angeforderter Stopp ist kein Betriebsfehler.
+                                <span class="cov0" title="0">if ctx.Err() != nil </span>{
+                                        <span class="cov0" title="0">return nil
+</span>                                }
+
+                                // Technischer Fehler, beispielsweise ACK fehlgeschlagen.
+                                <span class="cov0" title="0">return err</span>
+                        }
+                }
+        }
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
