@@ -55,13 +55,13 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">paperless/ocr-go/cmd/worker/config.go (0.0%)</option>
+				<option value="file0">paperless/ocr-go/cmd/worker/config.go (100.0%)</option>
 				
-				<option value="file1">paperless/ocr-go/cmd/worker/health.go (0.0%)</option>
+				<option value="file1">paperless/ocr-go/cmd/worker/health.go (100.0%)</option>
 				
 				<option value="file2">paperless/ocr-go/cmd/worker/main.go (0.0%)</option>
 				
-				<option value="file3">paperless/ocr-go/cmd/worker/processor.go (28.0%)</option>
+				<option value="file3">paperless/ocr-go/cmd/worker/processor.go (100.0%)</option>
 				
 				<option value="file4">paperless/ocr-go/cmd/worker/worker.go (0.0%)</option>
 				
@@ -96,7 +96,7 @@ type Config struct {
 
 func loadConfig() (Config, error) {
         // := legt eine Variable an und leitet ihren Typ automatisch ab.
-        <span class="cov0" title="0">config := Config{
+        <span class="cov8" title="1">config := Config{
                 RabbitHost: envOrDefault("RABBITMQ_HOST", "localhost"),
 
                 RabbitPort: envOrDefault("RABBITMQ_PORT", "5672"),
@@ -107,17 +107,17 @@ func loadConfig() (Config, error) {
                 HealthAddress: ":8082",
 </span>        }
 
-        <span class="cov0" title="0">if config.RabbitUser == "" || config.RabbitPassword == "" </span>{
-                <span class="cov0" title="0">return Config{}, errors.New(
+        <span class="cov8" title="1">if config.RabbitUser == "" || config.RabbitPassword == "" </span>{
+                <span class="cov8" title="1">return Config{}, errors.New(
                         "RABBITMQ_USER and RABBITMQ_PASSWORD are required",
                 )
 </span>        }
 
-        <span class="cov0" title="0">return config, nil</span>
+        <span class="cov8" title="1">return config, nil</span>
 }
 
 func (config Config) rabbitURL() string {
-        <span class="cov0" title="0">address := url.URL{
+        <span class="cov8" title="1">address := url.URL{
                 // Verbindungsprotokoll.
                 Scheme: "amqp",
 
@@ -138,18 +138,18 @@ func (config Config) rabbitURL() string {
 </span>        }
 
         // URL-Objekt in einen String umwandeln.
-        <span class="cov0" title="0">return address.String()
+        <span class="cov8" title="1">return address.String()
 </span>}
 
 // Liest einen Wert oder liefert den angegebenen Standardwert.
 func envOrDefault(name, fallback string) string {
-        <span class="cov0" title="0">value := os.Getenv(name)
+        <span class="cov8" title="1">value := os.Getenv(name)
 </span>
-        <span class="cov0" title="0">if value == "" </span>{
-                <span class="cov0" title="0">return fallback
+        <span class="cov8" title="1">if value == "" </span>{
+                <span class="cov8" title="1">return fallback
 </span>        }
 
-        <span class="cov0" title="0">return value</span>
+        <span class="cov8" title="1">return value</span>
 }
 </pre>
 		
@@ -168,22 +168,22 @@ func startHealthServer(
         ready func() bool,
 ) (*http.Server, &lt;-chan error, error) {
         // Port sofort öffnen, damit Portkonflikte sofort auffallen.
-        <span class="cov0" title="0">listener, err := net.Listen("tcp", address)
+        <span class="cov8" title="1">listener, err := net.Listen("tcp", address)
         if err != nil </span>{
-                <span class="cov0" title="0">return nil, nil, err
+                <span class="cov8" title="1">return nil, nil, err
 </span>        }
 
         // HTTP-Router anlegen.
-        <span class="cov0" title="0">mux := http.NewServeMux()
+        <span class="cov8" title="1">mux := http.NewServeMux()
 </span>
         // Handler für GET /health registrieren.
-        <span class="cov0" title="0">mux.HandleFunc("/health", func(
+        <span class="cov8" title="1">mux.HandleFunc("/health", func(
                 writer http.ResponseWriter,
                 request *http.Request,
         ) </span>{
                 // Zustand über die übergebene Funktion prüfen.
-                <span class="cov0" title="0">if !ready() </span>{
-                        <span class="cov0" title="0">http.Error(
+                <span class="cov8" title="1">if !ready() </span>{
+                        <span class="cov8" title="1">http.Error(
                                 writer,
                                 "RabbitMQ unavailable",
                                 http.StatusServiceUnavailable,
@@ -192,15 +192,15 @@ func startHealthServer(
 </span>                }
 
                 // Antwortformat bekanntgeben.
-                <span class="cov0" title="0">writer.Header().Set("Content-Type", "application/json")
+                <span class="cov8" title="1">writer.Header().Set("Content-Type", "application/json")
 </span>
                 // Ohne vorherigen Fehlerstatus wird HTTP 200 gesendet.
                 // _ ignoriert die Anzahl geschriebener Bytes.
-                <span class="cov0" title="0">_, _ = writer.Write([]byte(`{"status":"UP"}`))</span>
+                <span class="cov8" title="1">_, _ = writer.Write([]byte(`{"status":"UP"}`))</span>
         })
 
         // HTTP-Server konfigurieren.
-        <span class="cov0" title="0">server := &amp;http.Server{
+        <span class="cov8" title="1">server := &amp;http.Server{
                 Handler: mux,
 
                 // Clients dürfen nicht unbegrenzt lange Header übertragen.
@@ -208,14 +208,14 @@ func startHealthServer(
 </span>        }
 
         // Gepufferter Kanal für einen Serverfehler.
-        <span class="cov0" title="0">serverErrors := make(chan error, 1)
+        <span class="cov8" title="1">serverErrors := make(chan error, 1)
 </span>
         // Goroutine: Server parallel zum RabbitMQ-Consumer ausführen.
-        <span class="cov0" title="0">go func() </span>{
-                <span class="cov0" title="0">serverErrors &lt;- server.Serve(listener)
+        <span class="cov8" title="1">go func() </span>{
+                <span class="cov8" title="1">serverErrors &lt;- server.Serve(listener)
 </span>        }()
 
-        <span class="cov0" title="0">return server, serverErrors, nil</span>
+        <span class="cov8" title="1">return server, serverErrors, nil</span>
 }
 </pre>
 		
@@ -294,14 +294,14 @@ func decodeMessage(body []byte) (DocumentUploadedMessage, error) {
 </span>        }
 
         <span class="cov8" title="1">if message.ContentType != "application/pdf" </span>{
-                <span class="cov0" title="0">return message, errors.New("expected application/pdf")
+                <span class="cov8" title="1">return message, errors.New("expected application/pdf")
 </span>        }
 
         <span class="cov8" title="1">return message, nil</span>
 }
 
 func processDocument(message DocumentUploadedMessage) error {
-        <span class="cov0" title="0">slog.Info(
+        <span class="cov8" title="1">slog.Info(
                 "Start processing OCR job",
                 "documentTitle", message.Title,
                 "documentId", message.DocumentID,
@@ -312,17 +312,17 @@ func processDocument(message DocumentUploadedMessage) error {
 </span>
         // TODO: PDF laden und OCR-Engine aufrufen.
 
-        <span class="cov0" title="0">return nil
+        <span class="cov8" title="1">return nil
 </span>}
 
 func handleDelivery(
         ctx context.Context,
         delivery amqp.Delivery,
 ) error {
-        <span class="cov0" title="0">message, processingErr := decodeMessage(delivery.Body)
+        <span class="cov8" title="1">message, processingErr := decodeMessage(delivery.Body)
 </span>
-        <span class="cov0" title="0">if processingErr == nil </span>{
-                <span class="cov0" title="0">slog.Info(
+        <span class="cov8" title="1">if processingErr == nil </span>{
+                <span class="cov8" title="1">slog.Info(
                         "OCR job received",
                         "documentId", message.DocumentID,
                         "storageUuid", message.StorageUUID,
@@ -330,48 +330,48 @@ func handleDelivery(
                 )
 </span>
                 // Ergebnis der Verarbeitung merken.
-                <span class="cov0" title="0">processingErr = processDocument(message)
+                <span class="cov8" title="1">processingErr = processDocument(message)
 </span>        }
 
-        <span class="cov0" title="0">if processingErr != nil </span>{
-                <span class="cov0" title="0">slog.Error(
+        <span class="cov8" title="1">if processingErr != nil </span>{
+                <span class="cov8" title="1">slog.Error(
                         "OCR job failed; returning message to queue",
                         "documentId", message.DocumentID,
                         "storageUuid", message.StorageUUID,
                         "error", processingErr,
                 )
 </span>
-                <span class="cov0" title="0">select </span>{
+                <span class="cov8" title="1">select </span>{
                 case &lt;-ctx.Done():
-                        <span class="cov0" title="0">return ctx.Err()</span>
+                        <span class="cov8" title="1">return ctx.Err()</span>
 
-                case &lt;-time.After(2 * time.Second):<span class="cov0" title="0"></span>
+                case &lt;-time.After(2 * time.Second):<span class="cov8" title="1"></span>
                         // Nach der Pause weiter zur Rückgabe der Nachricht.
                 }
 
                 // false: nur diese Nachricht.
                 // true: erneut in die Queue stellen.
-                <span class="cov0" title="0">if err := delivery.Nack(false, true); err != nil </span>{
-                        <span class="cov0" title="0">return fmt.Errorf("request redelivery: %w", err)
+                <span class="cov8" title="1">if err := delivery.Nack(false, true); err != nil </span>{
+                        <span class="cov8" title="1">return fmt.Errorf("request redelivery: %w", err)
 </span>                }
 
                 // Der Verarbeitungsfehler wurde behandelt.
                 // Das bedeutet NICHT, dass die OCR erfolgreich war.
-                <span class="cov0" title="0">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         }
 
         // Verarbeitung erfolgreich: einzelne Nachricht bestätigen.
-        <span class="cov0" title="0">if err := delivery.Ack(false); err != nil </span>{
-                <span class="cov0" title="0">return fmt.Errorf("acknowledge OCR job: %w", err)
+        <span class="cov8" title="1">if err := delivery.Ack(false); err != nil </span>{
+                <span class="cov8" title="1">return fmt.Errorf("acknowledge OCR job: %w", err)
 </span>        }
 
-        <span class="cov0" title="0">slog.Info(
+        <span class="cov8" title="1">slog.Info(
                 "OCR placeholder completed; acknowledgement sent",
                 "documentId", message.DocumentID,
                 "storageUuid", message.StorageUUID,
         )
 </span>
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 </pre>
 		
@@ -382,13 +382,46 @@ import (
         "errors"   // Einfache Fehlerwerte.
         "fmt"      // Fehler mit Kontext.
         "log/slog" // Logging.
+        "net/http"
 
         amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func runWorker(ctx context.Context, config Config) error {
+        <span class="cov0" title="0">return runWorkerWith(ctx, config, dialRabbit, startHealthServer)
+</span>}
+
+// Dependencies are passed explicitly so tests do not consume real upload jobs.
+type rabbitChannel interface {
+        QueueDeclare(string, bool, bool, bool, bool, amqp.Table) (amqp.Queue, error)
+        Qos(int, int, bool) error
+        Consume(string, string, bool, bool, bool, bool, amqp.Table) (&lt;-chan amqp.Delivery, error)
+        Close() error
+        IsClosed() bool
+}
+
+type rabbitConnection interface {
+        Channel() (rabbitChannel, error)
+        Close() error
+        IsClosed() bool
+}
+
+type liveConnection struct { *amqp.Connection }
+
+func (c liveConnection) Channel() (rabbitChannel, error) { <span class="cov0" title="0">return c.Connection.Channel() }</span>
+
+func dialRabbit(address string) (rabbitConnection, error) {
+        <span class="cov0" title="0">c, err := amqp.Dial(address)
+        if err != nil </span>{ <span class="cov0" title="0">return nil, err }</span>
+        <span class="cov0" title="0">return liveConnection{c}, nil</span>
+}
+
+func runWorkerWith(ctx context.Context, config Config,
+        dial func(string) (rabbitConnection, error),
+        startHealth func(string, func() bool) (*http.Server, &lt;-chan error, error),
+) error {
         // Verbindung zu RabbitMQ herstellen.
-        <span class="cov0" title="0">connection, err := amqp.Dial(config.rabbitURL())
+        <span class="cov0" title="0">connection, err := dial(config.rabbitURL())
         if err != nil </span>{
                 <span class="cov0" title="0">return errors.New(
                         "RabbitMQ connection failed; check broker and configuration",
@@ -438,7 +471,7 @@ func runWorker(ctx context.Context, config Config) error {
 </span>        }
 
         // Eigenen Healthcheck starten.
-        <span class="cov0" title="0">server, serverErrors, err := startHealthServer(
+        <span class="cov0" title="0">server, serverErrors, err := startHealth(
                 config.HealthAddress,
 
                 // Funktion wird bei jedem Healthcheck aufgerufen.

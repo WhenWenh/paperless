@@ -5,13 +5,46 @@ import (
 	"errors"   // Einfache Fehlerwerte.
 	"fmt"      // Fehler mit Kontext.
 	"log/slog" // Logging.
+	"net/http"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func runWorker(ctx context.Context, config Config) error {
+	return runWorkerWith(ctx, config, dialRabbit, startHealthServer)
+}
+
+// Dependencies are passed explicitly so tests do not consume real upload jobs.
+type rabbitChannel interface {
+	QueueDeclare(string, bool, bool, bool, bool, amqp.Table) (amqp.Queue, error)
+	Qos(int, int, bool) error
+	Consume(string, string, bool, bool, bool, bool, amqp.Table) (<-chan amqp.Delivery, error)
+	Close() error
+	IsClosed() bool
+}
+
+type rabbitConnection interface {
+	Channel() (rabbitChannel, error)
+	Close() error
+	IsClosed() bool
+}
+
+type liveConnection struct { *amqp.Connection }
+
+func (c liveConnection) Channel() (rabbitChannel, error) { return c.Connection.Channel() }
+
+func dialRabbit(address string) (rabbitConnection, error) {
+	c, err := amqp.Dial(address)
+	if err != nil { return nil, err }
+	return liveConnection{c}, nil
+}
+
+func runWorkerWith(ctx context.Context, config Config,
+	dial func(string) (rabbitConnection, error),
+	startHealth func(string, func() bool) (*http.Server, <-chan error, error),
+) error {
 	// Verbindung zu RabbitMQ herstellen.
-	connection, err := amqp.Dial(config.rabbitURL())
+	connection, err := dial(config.rabbitURL())
 	if err != nil {
 		return errors.New(
 			"RabbitMQ connection failed; check broker and configuration",
@@ -61,7 +94,7 @@ func runWorker(ctx context.Context, config Config) error {
 	}
 
 	// Eigenen Healthcheck starten.
-	server, serverErrors, err := startHealthServer(
+	server, serverErrors, err := startHealth(
 		config.HealthAddress,
 
 		// Funktion wird bei jedem Healthcheck aufgerufen.
