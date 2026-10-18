@@ -37,7 +37,9 @@ func decodeMessage(body []byte) (DocumentUploadedMessage, error) {
 func processDocument(message DocumentUploadedMessage) error {
 	slog.Info(
 		"Start processing OCR job",
+		"documentTitle", message.Title,
 		"documentId", message.DocumentID,
+		"documentName", message.Filename,
 		"storageUuid", message.StorageUUID,
 		"contentType", message.ContentType,
 	)
