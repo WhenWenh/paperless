@@ -1,6 +1,8 @@
 package main
 
 import (
+	"paperless/ocr-go/internal/worker"
+
 	"context"   // Gemeinsames Signal zum Beenden.
 	"log/slog"  // Strukturiertes Logging.
 	"os"        // Standardausgabe und Exit-Code.
@@ -26,7 +28,7 @@ func main() {
 	defer stop()
 
 	// Konfiguration aus config.go laden.
-	config, err := loadConfig()
+	config, err := worker.LoadConfig()
 
 	// Go behandelt erwartbare Fehler über Rückgabewerte.
 	if err != nil {
@@ -36,7 +38,7 @@ func main() {
 	}
 
 	// Verbindung, Consumer und Healthcheck starten.
-	if err := runWorker(ctx, config); err != nil {
+	if err := worker.Run(ctx, config); err != nil {
 		slog.Error("OCR worker stopped", "error", err)
 		os.Exit(1)
 	}

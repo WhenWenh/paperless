@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"net"      // TCP-Port öffnen.
@@ -8,7 +8,7 @@ import (
 
 // ready ist eine übergebene Funktion, die Bereitschaft prüft.
 // Rückgabe: Server, Fehlerkanal, möglicher Startfehler.
-func startHealthServer(
+func StartHealthServer(
 	address string,
 	ready func() bool,
 ) (*http.Server, <-chan error, error) {

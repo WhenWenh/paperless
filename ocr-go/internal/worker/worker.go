@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"context"  // Stoppsignal.
@@ -10,8 +10,8 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func runWorker(ctx context.Context, config Config) error {
-	return runWorkerWith(ctx, config, dialRabbit, startHealthServer)
+func Run(ctx context.Context, config Config) error {
+	return runWorkerWith(ctx, config, dialRabbit, StartHealthServer)
 }
 
 // Dependencies are passed explicitly so tests do not consume real upload jobs.
@@ -29,13 +29,15 @@ type rabbitConnection interface {
 	IsClosed() bool
 }
 
-type liveConnection struct { *amqp.Connection }
+type liveConnection struct{ *amqp.Connection }
 
 func (c liveConnection) Channel() (rabbitChannel, error) { return c.Connection.Channel() }
 
 func dialRabbit(address string) (rabbitConnection, error) {
 	c, err := amqp.Dial(address)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	return liveConnection{c}, nil
 }
 
@@ -44,7 +46,7 @@ func runWorkerWith(ctx context.Context, config Config,
 	startHealth func(string, func() bool) (*http.Server, <-chan error, error),
 ) error {
 	// Verbindung zu RabbitMQ herstellen.
-	connection, err := dial(config.rabbitURL())
+	connection, err := dial(config.RabbitURL())
 	if err != nil {
 		return errors.New(
 			"RabbitMQ connection failed; check broker and configuration",
@@ -136,7 +138,7 @@ func runWorkerWith(ctx context.Context, config Config,
 			}
 
 			// Entspricht dem Aufruf deiner receive(...)-Methode.
-			if err := handleDelivery(ctx, delivery); err != nil {
+			if err := HandleDelivery(ctx, delivery); err != nil {
 				// Angeforderter Stopp ist kein Betriebsfehler.
 				if ctx.Err() != nil {
 					return nil

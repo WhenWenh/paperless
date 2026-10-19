@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"errors"  // Erstellt einfache Fehlerwerte.
@@ -15,7 +15,7 @@ type Config struct {
 	HealthAddress  string
 }
 
-func loadConfig() (Config, error) {
+func LoadConfig() (Config, error) {
 	// := legt eine Variable an und leitet ihren Typ automatisch ab.
 	config := Config{
 		RabbitHost: envOrDefault("RABBITMQ_HOST", "localhost"),
@@ -37,7 +37,7 @@ func loadConfig() (Config, error) {
 	return config, nil
 }
 
-func (config Config) rabbitURL() string {
+func (config Config) RabbitURL() string {
 	address := url.URL{
 		// Verbindungsprotokoll.
 		Scheme: "amqp",

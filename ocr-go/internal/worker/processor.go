@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"context"       // Ermöglicht Abbruch beim Herunterfahren.
@@ -11,7 +11,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func decodeMessage(body []byte) (DocumentUploadedMessage, error) {
+func DecodeMessage(body []byte) (DocumentUploadedMessage, error) {
 	var message DocumentUploadedMessage
 
 	// &message übergibt die Adresse der Struktur.
@@ -49,11 +49,11 @@ func processDocument(message DocumentUploadedMessage) error {
 	return nil
 }
 
-func handleDelivery(
+func HandleDelivery(
 	ctx context.Context,
 	delivery amqp.Delivery,
 ) error {
-	message, processingErr := decodeMessage(delivery.Body)
+	message, processingErr := DecodeMessage(delivery.Body)
 
 	if processingErr == nil {
 		slog.Info(

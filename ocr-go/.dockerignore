@@ -1,4 +1,7 @@
 .git
-ocr-worker
+coverage/
+bin/
 coverage.out
 coverage.html
+ocr-worker
+ocr-worker.exe

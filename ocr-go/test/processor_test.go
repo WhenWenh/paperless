@@ -1,6 +1,9 @@
-package main
+package worker_test
 
-import "testing" // Go-Testwerkzeug, grob vergleichbar mit JUnit.
+import (
+	"paperless/ocr-go/internal/worker"
+	"testing" // Go-Testwerkzeug, grob vergleichbar mit JUnit.
+)
 
 // Testfunktionen beginnen mit Test und erhalten *testing.T.
 func TestDecodeMessageValid(t *testing.T) {
@@ -14,7 +17,7 @@ func TestDecodeMessageValid(t *testing.T) {
 	}`)
 
 	// Funktion unter Test ausführen.
-	message, err := decodeMessage(body)
+	message, err := worker.DecodeMessage(body)
 
 	// Bei Fehler diesen Test sofort abbrechen.
 	if err != nil {
@@ -39,7 +42,7 @@ func TestDecodeMessageMissingDocumentID(t *testing.T) {
 	}`)
 
 	// Der gelesene Nachrichtenwert interessiert hier nicht: _.
-	_, err := decodeMessage(body)
+	_, err := worker.DecodeMessage(body)
 
 	// Ohne Fehler wäre dieser Test fehlgeschlagen.
 	if err == nil {
@@ -49,7 +52,7 @@ func TestDecodeMessageMissingDocumentID(t *testing.T) {
 
 func TestDecodeMessageInvalidJSON(t *testing.T) {
 	// Absichtlich unvollständiges JSON.
-	_, err := decodeMessage([]byte(`{"documentId":`))
+	_, err := worker.DecodeMessage([]byte(`{"documentId":`))
 
 	if err == nil {
 		t.Fatal("expected an error for invalid JSON")
