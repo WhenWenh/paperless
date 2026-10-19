@@ -57,4 +57,6 @@ go tool cover -html=coverage.out -o coverage.html
 ```
 
 Anschließend `coverage.html` im Browser öffnen.
-
+```bash
+explorer.exe "$(wslpath -w "$PWD/coverage.html")"
+```
