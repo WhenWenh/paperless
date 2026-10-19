@@ -138,10 +138,17 @@ Im Verzeichnis `ocr-go` mit einer Go-Version gemäß `go.mod`:
 ```bash
 go test ./...
 go vet ./...
-go build -o ocr-worker ./cmd/worker
+go build -o bin/ocr-worker ./cmd/worker
 ```
 
 Weitere Befehle und Coverage-Hinweise stehen in der [Worker-README](ocr-go/README.md).
+
+Die Go-Tests liegen unter `ocr-go/test/`, die getestete Worker-Logik unter
+`ocr-go/internal/worker/`. Für Coverage im Projekt-Root
+`bash test-coverage-go.sh` ausführen. Die Berichte landen unter
+`ocr-go/coverage/`, lokale Go-Binaries unter `ocr-go/bin/`; beide Ordner
+sind in `.gitignore` ausgeschlossen. IntelliJ-Dateien (`*.iml`) sind ebenfalls
+ignoriert und werden bei Bedarf von der IDE aus dem Maven-Projekt erzeugt.
 
 ### Frontend
 

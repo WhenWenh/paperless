@@ -40,3 +40,11 @@ build/
 
 # Lokale Konfiguration
 .env
+
+### Go build and test outputs ###
+coverage.out
+coverage.html
+/ocr-go/coverage/
+/ocr-go/bin/
+/ocr-go/ocr-worker
+/ocr-go/ocr-worker.exe
