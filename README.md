@@ -2,8 +2,6 @@
 
 Paperless ist ein modulares Dokumentenmanagementsystem im Rahmen von SWEN3. Dokumente werden über eine Angular-Weboberfläche verwaltet; eine Spring-Boot-API speichert Metadaten in PostgreSQL und Dateien in einem gemeinsamen Docker-Volume. Keycloak übernimmt die Anmeldung. PDF-Uploads erzeugen über RabbitMQ Aufträge für einen Worker.
 
-Diese README basiert auf der Vorarbeit und beschreibt den aktuellen Implementierungsstand.
-
 ## Technologie-Stack
 
 | Bereich | Technologie |
@@ -195,6 +193,3 @@ Die fachlichen API-Endpunkte erfordern Authentifizierung. `/health` ist öffentl
 - [Datenbankschema](init.sql)
 - [Sprint-Details](_docs/sprint-details.yaml)
 
-## Geplante Erweiterungen
-
-Die Zielarchitektur aus der Vorarbeit ergänzt den bestehenden Ablauf um echte OCR-Verarbeitung, Dateispeicherung in MinIO, Volltextsuche mit Elasticsearch und KI-Zusammenfassungen über einen GenAI-Worker mit Google Gemini. Diese Komponenten sind im aktuellen Compose-Setup noch nicht enthalten.
