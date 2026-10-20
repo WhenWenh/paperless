@@ -2,14 +2,21 @@ package at.fhtw.swen.paperless.api.controller;
 
 import at.fhtw.swen.paperless.api.controller.response.ErrorResponse;
 import at.fhtw.swen.paperless.api.service.exception.*;
+
 import jakarta.servlet.http.HttpServletRequest;
+
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -151,5 +158,71 @@ public class GlobalExceptionHandler {
                                 request.getRequestURI()
                         )
                 );
+    }
+
+    @ExceptionHandler(OcrJobPublishException.class)
+    public ResponseEntity<ErrorResponse> handleOcrJobPublish(
+            OcrJobPublishException exception,
+            HttpServletRequest request
+    ) {
+        return build(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(
+            MissingServletRequestPartException exception,
+            HttpServletRequest request
+    ) {
+        return build(
+                HttpStatus.BAD_REQUEST,
+                "Missing request part: " + exception.getRequestPartName(),
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(
+            HttpMessageNotReadableException exception,
+            HttpServletRequest request
+    ) {
+        return build(
+                HttpStatus.BAD_REQUEST,
+                "Invalid JSON or request body",
+                request
+        );
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleUnsupportedMediaType(
+            HttpMediaTypeNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        return build(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Unsupported request content type",
+                request
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleUnexpected(
+            Exception exception,
+            HttpServletRequest request
+    ) {
+        log.error(
+                "Unhandled error while processing {}",
+                request.getRequestURI(),
+                exception
+        );
+
+        return build(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unexpected error",
+                request
+        );
     }
 }

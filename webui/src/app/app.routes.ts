@@ -5,11 +5,13 @@ import { DocumentComponent } from './features/document/document.component';
 import { TaggingComponent } from '@features/tagging/tagging.component';
 import { TagsComponent } from '@features/tags/tags.component';
 import { UploadComponent } from '@features/upload/upload.component';
+import { authGuard } from '@core/auth/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: MainLayoutComponent,
+    canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'document/:id', component: DocumentComponent },

@@ -1,0 +1,82 @@
+{
+  "realm": "paperless",
+  "enabled": true,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "USER",
+        "description": "Regular user"
+      },
+      {
+        "name": "ADMIN",
+        "description": "Administrator"
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "paperless-webui",
+      "name": "Paperless Web UI",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost/*"
+      ],
+      "webOrigins": [
+        "http://localhost"
+      ]
+    },
+    {
+      "clientId": "paperless-postman",
+      "name": "Paperless Postman Tests",
+      "enabled": true,
+      "protocol": "openid-connect",
+
+      "publicClient": false,
+      "secret": "paperless-postman-secret",
+
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+
+      "attributes": {
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      }
+    }
+  ],
+
+  "users": [
+    {
+      "username": "test",
+      "enabled": true,
+
+      "firstName": "Test",
+      "lastName": "User",
+
+      "email": "testuser@example.com",
+      "emailVerified": true,
+
+      "requiredActions": [],
+
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test",
+          "temporary": false
+        }
+      ],
+
+      "realmRoles": [
+        "USER"
+      ]
+    }
+  ]
+}

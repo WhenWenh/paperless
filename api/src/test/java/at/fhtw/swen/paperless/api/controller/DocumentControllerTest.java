@@ -4,6 +4,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
+import at.fhtw.swen.paperless.api.security.SecurityConfig;
+import at.fhtw.swen.paperless.api.security.JwtAuthenticationConverter;
+import at.fhtw.swen.paperless.api.service.exception.OcrJobPublishException;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.junit.jupiter.api.Test;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
@@ -30,7 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(DocumentController.class)
+@Import({SecurityConfig.class, JwtAuthenticationConverter.class})
 class DocumentControllerTest {
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Autowired
     private MockMvc mockMvc;
@@ -52,7 +61,7 @@ class DocumentControllerTest {
         when(documentService.createDocument(any(), any())).thenReturn(
                 DocumentDto.builder().id(id).title("Title").originalFilename("file.pdf")
                         .contentType("application/pdf").fileSize(3L).build());
-        mockMvc.perform(multipart("/api/v1/documents")
+        mockMvc.perform(multipart("/api/v1/documents").with(jwt())
                         .file(metadata("{\"title\":\"Title\"}")).file(file()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(id.toString()))
@@ -61,7 +70,7 @@ class DocumentControllerTest {
 
     @Test
     void createDocument_shouldRejectBlankTitle() throws Exception {
-        mockMvc.perform(multipart("/api/v1/documents")
+        mockMvc.perform(multipart("/api/v1/documents").with(jwt())
                         .file(metadata("{\"title\":\"\"}")).file(file()))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(documentService);
@@ -69,14 +78,27 @@ class DocumentControllerTest {
 
     @Test
     void createDocument_shouldRejectMissingFile() throws Exception {
-        mockMvc.perform(multipart("/api/v1/documents").file(metadata("{\"title\":\"Title\"}")))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .file(metadata("{\"title\":\"Title\"}"))
+                                .with(jwt())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message")
+                        .value("Missing request part: file"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
         verifyNoInteractions(documentService);
     }
 
     @Test
     void createDocument_shouldRejectMissingMetadata() throws Exception {
-        mockMvc.perform(multipart("/api/v1/documents").file(file()))
+        mockMvc.perform(multipart("/api/v1/documents").with(jwt()).file(file()))
                 .andExpect(status().isBadRequest());
         verifyNoInteractions(documentService);
     }
@@ -85,7 +107,7 @@ class DocumentControllerTest {
     void createDocument_invalidUpload_shouldReturn400WithMessage() throws Exception {
         when(documentService.createDocument(any(), any()))
                 .thenThrow(new InvalidUploadException("Unsupported content type"));
-        mockMvc.perform(multipart("/api/v1/documents")
+        mockMvc.perform(multipart("/api/v1/documents").with(jwt())
                         .file(metadata("{\"title\":\"Title\"}")).file(file()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Unsupported content type"));
@@ -93,17 +115,29 @@ class DocumentControllerTest {
 
     @Test
     void createDocument_jsonOnly_shouldReturn415() throws Exception {
-        mockMvc.perform(post("/api/v1/documents").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"Title\"}"))
-                .andExpect(status().isUnsupportedMediaType());
+        mockMvc.perform(
+                        post("/api/v1/documents")
+                                .with(jwt())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"title\":\"Title\"}")
+                )
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status").value(415))
+                .andExpect(jsonPath("$.message")
+                        .value("Unsupported request content type"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
         verifyNoInteractions(documentService);
     }
+
     @Test
     void getDocument_shouldReturn404WhenMissing() throws Exception {
         UUID id = UUID.randomUUID();
         when(documentService.getDocument(id)).thenReturn(Optional.empty());
 
-        mockMvc.perform(get("/api/v1/documents/" + id))
+        mockMvc.perform(get("/api/v1/documents/" + id).with(jwt()))
                 .andExpect(status().isNotFound());
     }
 
@@ -117,7 +151,7 @@ class DocumentControllerTest {
                         .contentType("application/pdf")
                         .fileSize(123L)
                         .build()));
-        mockMvc.perform(get("/api/v1/documents"))
+        mockMvc.perform(get("/api/v1/documents").with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
     }
@@ -135,7 +169,7 @@ class DocumentControllerTest {
                         .fileSize(123L)
                         .build()));
 
-        mockMvc.perform(get("/api/v1/documents/" + id))
+        mockMvc.perform(get("/api/v1/documents/" + id).with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
                 .andExpect(jsonPath("$.title").value("Title"));
@@ -144,7 +178,7 @@ class DocumentControllerTest {
     @Test
     void deleteDocument_shouldReturn204() throws Exception {
         UUID id = UUID.randomUUID();
-        mockMvc.perform(delete("/api/v1/documents/" + id))
+        mockMvc.perform(delete("/api/v1/documents/" + id).with(jwt()))
                 .andExpect(status().isNoContent());
     }
 
@@ -154,7 +188,7 @@ class DocumentControllerTest {
         when(documentService.getDocumentsByTag("Finance")).thenReturn(List.of(
                 new DocumentDto(UUID.randomUUID(), "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
 
-        mockMvc.perform(get("/api/v1/documents").param("tag", "Finance"))
+        mockMvc.perform(get("/api/v1/documents").with(jwt()).param("tag", "Finance"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].tagName").value("Finance"));
@@ -167,7 +201,7 @@ class DocumentControllerTest {
         when(documentService.updateDocumentTag(eq(id), eq(tagId))).thenReturn(Optional.of(
                 new DocumentDto(id, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
 
-        mockMvc.perform(put("/api/v1/documents/" + id + "/tag")
+        mockMvc.perform(put("/api/v1/documents/" + id + "/tag").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tagId\":\"" + tagId + "\"}"))
                 .andExpect(status().isOk())
@@ -180,7 +214,7 @@ class DocumentControllerTest {
         UUID id = UUID.randomUUID();
         when(documentService.updateDocumentTag(eq(id), eq(null))).thenReturn(Optional.empty());
 
-        mockMvc.perform(put("/api/v1/documents/" + id + "/tag")
+        mockMvc.perform(put("/api/v1/documents/" + id + "/tag").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"tagId\":null}"))
                 .andExpect(status().isNotFound());
@@ -196,7 +230,7 @@ class DocumentControllerTest {
                 .build();
         when(documentService.createDocument(any(), any())).thenReturn(created);
 
-        mockMvc.perform(multipart("/api/v1/documents")
+        mockMvc.perform(multipart("/api/v1/documents").with(jwt())
                         .file(metadata("{\"title\":\"Invoice\",\"tagId\":\"" + tagId + "\"}"))
                         .file(file()))
                 .andExpect(status().isCreated())
@@ -206,5 +240,80 @@ class DocumentControllerTest {
                 org.mockito.ArgumentCaptor.forClass(CreateDocumentCommand.class);
         org.mockito.Mockito.verify(documentService).createDocument(captor.capture(), any());
         org.assertj.core.api.Assertions.assertThat(captor.getValue().tagId()).isEqualTo(tagId);
+    }
+
+    @Test
+    void getWithoutAuthentication_shouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/documents"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void createDocument_publishFailure_shouldReturn503() throws Exception {
+        UUID documentId = UUID.randomUUID();
+
+        OcrJobPublishException failure = new OcrJobPublishException(
+                documentId,
+                new IllegalStateException("RabbitMQ unavailable")
+        );
+
+        when(documentService.createDocument(any(), any()))
+                .thenThrow(failure);
+
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .with(jwt())
+                                .file(metadata("{\"title\":\"Title\"}"))
+                                .file(file())
+                )
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(
+                        jsonPath("$.message").value(failure.getMessage())
+                );
+    }
+
+    @Test
+    void createDocument_invalidJson_shouldReturn400() throws Exception {
+        mockMvc.perform(
+                        multipart("/api/v1/documents")
+                                .file(metadata("{\"title\":"))
+                                .file(file())
+                                .with(jwt())
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message")
+                        .value("Invalid JSON or request body"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+
+        verifyNoInteractions(documentService);
+    }
+
+    @Test
+    void getAllDocuments_unexpectedFailure_shouldReturnSafe500()
+            throws Exception {
+
+        when(documentService.getAllDocuments())
+                .thenThrow(new IllegalStateException(
+                        "INTERNAL_DETAIL: database-password"
+                ));
+
+        mockMvc.perform(
+                        get("/api/v1/documents").with(jwt())
+                )
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.message").value("Unexpected error"))
+                .andExpect(jsonPath("$.path")
+                        .value("/api/v1/documents"))
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(jsonPath("$.stackTrace").doesNotExist())
+                .andExpect(result ->
+                        org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentAsString()
+                        ).doesNotContain("INTERNAL_DETAIL", "database-password")
+                );
     }
 }

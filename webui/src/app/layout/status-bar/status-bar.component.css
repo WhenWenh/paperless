@@ -1,0 +1,33 @@
+.status {
+
+  height: 40px;
+
+  background: var(--color-primary-dark);
+
+  color: white;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: space-between;
+
+  padding: 0 1rem;
+
+  font-size: .9rem;
+}
+
+
+.user {
+  margin-left: auto;
+}
+
+
+.up {
+  color: #81C784;
+}
+
+
+.down {
+  color: #EF5350;
+}

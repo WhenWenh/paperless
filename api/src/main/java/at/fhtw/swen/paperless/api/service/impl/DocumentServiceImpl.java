@@ -12,7 +12,13 @@ import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
+import at.fhtw.swen.paperless.api.security.CurrentUser;
+
+import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
+import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +35,14 @@ public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
     private final DocumentMapper documentMapper;
-    private final TagRepository tagRepository;
     private final DocumentStorageService documentStorageService;
     private final DocumentValidationService documentValidationService;
+
+    private final TagRepository tagRepository;
+
+    private final CurrentUser currentUser;
+
+    private final DocumentEventPublisher documentEventPublisher;
 
     @Override
     public DocumentDto createDocument(
@@ -47,9 +58,12 @@ public class DocumentServiceImpl implements DocumentService {
 
         UUID storageUuid = documentStorageService.store(file);
 
+        Document saved;
+
         try {
             Document entity = new Document();
 
+            entity.setOwnerId(currentUser.id());
             entity.setTitle(command.title());
             entity.setOriginalFilename(file.getOriginalFilename());
             entity.setContentType(file.getContentType());
@@ -65,30 +79,78 @@ public class DocumentServiceImpl implements DocumentService {
                 entity.setTag(tag);
             }
 
-            Document saved = documentRepository.save(entity);
+            saved = documentRepository.save(entity);
 
-            return documentMapper.toDto(saved);
         } catch (RuntimeException exception) {
-            documentStorageService.delete(storageUuid);
+            try {
+                documentStorageService.delete(storageUuid);
+            } catch (RuntimeException cleanupException) {
+                exception.addSuppressed(cleanupException);
+
+                log.error(
+                        "Failed to clean up uploaded file: {}",
+                        storageUuid,
+                        cleanupException
+                );
+            }
+
             throw exception;
         }
+
+        log.info(
+                "Document upload saved: documentId={}, storageUuid={}, contentType={}",
+                saved.getId(),
+                saved.getStorageUuid(),
+                saved.getContentType()
+        );
+
+        DocumentDto result = documentMapper.toDto(saved);
+
+        if (MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(
+                saved.getContentType()
+        )) {
+            documentEventPublisher.publishDocumentUploaded(
+                    new DocumentUploadedMessage(
+                            saved.getTitle(),
+                            saved.getOriginalFilename(),
+                            saved.getContentType(),
+                            saved.getId(),
+                            saved.getStorageUuid()
+                    )
+            );
+        }
+
+        return result;
     }
 
     @Override
     public List<DocumentDto> getAllDocuments() {
-        return documentMapper.toDto(documentRepository.findAll());
+        return documentRepository
+                .findAllByOwnerId(currentUser.id())
+                .stream()
+                .map(documentMapper::toDto)
+                .toList();
     }
 
     @Override
     public Optional<DocumentDto> getDocument(UUID id) {
-        return documentRepository.findById(id)
+        return documentRepository
+                .findByIdAndOwnerId(id, currentUser.id())
                 .map(documentMapper::toDto);
     }
 
     @Override
     public void deleteDocument(UUID id) {
-        log.debug("Deleting document with id '{}'", id);
-        documentRepository.deleteById(id);
+        log.debug(
+                "Deleting document {}",
+                id
+        );
+        Document document = documentRepository
+                .findByIdAndOwnerId(id, currentUser.id())
+                .orElseThrow(() -> new DocumentNotFoundException(id));
+
+        documentStorageService.delete(document.getStorageUuid());
+        documentRepository.delete(document);
     }
 
     @Override
@@ -100,7 +162,7 @@ public class DocumentServiceImpl implements DocumentService {
         documentValidationService.validateTitle(title);
 
         Document document =
-                documentRepository.findById(id)
+                documentRepository.findByIdAndOwnerId(id, currentUser.id())
                         .orElseThrow(() ->
                                 new DocumentNotFoundException(id)
                         );
@@ -114,20 +176,23 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDto> getDocumentsByTag(String tagName) {
-        if ("none".equals(tagName)) {
-            return documentRepository.findByTagIsNull().stream()
-                    .map(documentMapper::toDto)
-                    .toList();
-        }
+        List<Document> documents = "none".equals(tagName)
+                ? documentRepository.findByOwnerIdAndTagIsNull(
+                currentUser.id()
+        )
+                : documentRepository.findByOwnerIdAndTag_Name(
+                currentUser.id(),
+                tagName
+        );
 
-        return documentRepository.findByTag_Name(tagName).stream()
+        return documents.stream()
                 .map(documentMapper::toDto)
                 .toList();
     }
 
     @Override
     public Optional<DocumentDto> updateDocumentTag(UUID id, UUID tagId) {
-        return documentRepository.findById(id)
+        return documentRepository.findByIdAndOwnerId(id, currentUser.id())
                 .map(document -> {
                     if (tagId == null) {
                         document.setTag(null);

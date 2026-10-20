@@ -7,6 +7,7 @@ COPY .mvn .mvn
 COPY pom.xml .
 COPY api api
 COPY share share
+COPY ocr/pom.xml ocr/pom.xml
 
 RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 

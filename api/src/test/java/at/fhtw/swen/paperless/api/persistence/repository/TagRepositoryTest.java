@@ -37,6 +37,7 @@ class TagRepositoryTest {
 
     private Document document(String title, Tag tag) {
         Document document = new Document();
+        document.setOwnerId(java.util.UUID.randomUUID());
         document.setTitle(title);
         document.setOriginalFilename(title + ".pdf");
         document.setContentType("application/pdf");
