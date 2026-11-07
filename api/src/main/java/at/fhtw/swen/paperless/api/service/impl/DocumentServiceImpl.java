@@ -111,11 +111,15 @@ public class DocumentServiceImpl implements DocumentService {
         )) {
             documentEventPublisher.publishDocumentUploaded(
                     new DocumentUploadedMessage(
+                            saved.getId(),
+                            saved.getStorageUuid(),
+                            saved.getOwnerId(),
                             saved.getTitle(),
                             saved.getOriginalFilename(),
                             saved.getContentType(),
-                            saved.getId(),
-                            saved.getStorageUuid()
+                            saved.getTag() == null
+                                    ? null
+                                    : saved.getTag().getId()
                     )
             );
         }
