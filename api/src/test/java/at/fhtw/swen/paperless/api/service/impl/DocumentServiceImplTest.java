@@ -19,7 +19,7 @@ import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.service.exception.InvalidUploadException;
 
 import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 
 import org.springframework.mock.web.MockMultipartFile;
 import org.mockito.ArgumentCaptor;

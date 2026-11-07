@@ -1,6 +1,6 @@
 package at.fhtw.swen.paperless.ocr.messaging;
 
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 import at.fhtw.swen.paperless.share.QueueNames;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

@@ -15,7 +15,7 @@ import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.security.CurrentUser;
 
 import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;

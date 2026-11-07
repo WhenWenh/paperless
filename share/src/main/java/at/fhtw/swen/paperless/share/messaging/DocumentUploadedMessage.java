@@ -1,4 +1,4 @@
-package at.fhtw.swen.paperless.share;
+package at.fhtw.swen.paperless.share.messaging;
 
 import java.util.UUID;
 
