@@ -31,7 +31,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(TagController.class)
+@WebMvcTest(
+        controllers = TagController.class,
+        properties = "storage.type=filesystem"
+)
 @Import({SecurityConfig.class, JwtAuthenticationConverter.class})
 class TagControllerTest {
     @MockitoBean

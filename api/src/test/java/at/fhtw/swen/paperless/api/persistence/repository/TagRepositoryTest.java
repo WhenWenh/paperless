@@ -8,7 +8,10 @@ import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@DataJpaTest(properties = {
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "storage.type=filesystem"
+})
 class TagRepositoryTest {
     @Autowired private TagRepository tagRepository;
     @Autowired private DocumentRepository documentRepository;

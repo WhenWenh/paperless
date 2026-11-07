@@ -1,7 +1,7 @@
 package at.fhtw.swen.paperless.api.messaging;
 
 import at.fhtw.swen.paperless.api.service.exception.OcrJobPublishException;
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 import at.fhtw.swen.paperless.share.QueueNames;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
