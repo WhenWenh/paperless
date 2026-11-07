@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk AS build
 
 WORKDIR /app
 
@@ -18,7 +18,15 @@ COPY share/src share/src
 
 RUN ./mvnw package -pl ocr -am -DskipTests -B
 
-FROM eclipse-temurin:25-jre-alpine
+FROM eclipse-temurin:25-jre
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        wget \
+        tesseract-ocr \
+        tesseract-ocr-eng \
+        poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
