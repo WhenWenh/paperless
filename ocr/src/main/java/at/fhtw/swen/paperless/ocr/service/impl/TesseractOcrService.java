@@ -30,7 +30,7 @@ public class TesseractOcrService implements OcrService {
                 document,
                 contentType
         );
-        
+
         return new OcrCompletedMessage(
                 documentId,
                 storageUuid,
