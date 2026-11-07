@@ -68,3 +68,38 @@ services:
       start_period: 90s
     networks:
       - paperless_network
+
+  filestore:
+    build:
+      context: ./_filestore
+    restart: unless-stopped
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - filestore-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - paperless_network
+
+volumes:
+  paperless-pg-data:
+  keycloak-data:
+  rabbitmq-data:
+  filestore-data:
+
+networks:
+  paperless_network:

@@ -31,6 +31,14 @@ spring:
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
 
+storage:
+  type: ${STORAGE_TYPE:s3}
+  endpoint: ${STORAGE_ENDPOINT:http://filestore:9000}
+  region: ${STORAGE_REGION:us-east-1}
+  access-key: ${STORAGE_ACCESS_KEY:}
+  secret-key: ${STORAGE_SECRET_KEY:}
+  bucket: ${STORAGE_BUCKET:paperless}
+
 logging:
   level:
     at.fhtw.swen.paperless: DEBUG
