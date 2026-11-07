@@ -21,7 +21,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@DataJpaTest(properties = {
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "storage.type=filesystem"
+})
 class DocumentOwnershipTest {
     @Autowired private DocumentRepository documents;
     @Autowired private TagRepository tags;

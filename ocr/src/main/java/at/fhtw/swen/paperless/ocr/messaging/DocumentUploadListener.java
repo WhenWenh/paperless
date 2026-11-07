@@ -5,10 +5,20 @@ import at.fhtw.swen.paperless.share.QueueNames;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import at.fhtw.swen.paperless.ocr.service.DocumentStorageService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 @Slf4j
 @Component
+@RequiredArgsConstructor
 public class DocumentUploadListener {
+
+    private final DocumentStorageService storageService;
 
     @RabbitListener(
             queues = QueueNames.DOCUMENT_UPLOAD_QUEUE
@@ -52,7 +62,18 @@ public class DocumentUploadListener {
         }
     }
 
-    private void process(DocumentUploadedMessage message) {
-        // TODO: OCR later
+    private void process(DocumentUploadedMessage message) throws IOException {
+        Resource resource = storageService.load(message.storageUuid());
+
+        try (InputStream input = resource.getInputStream()) {
+            long bytesRead = input.transferTo(OutputStream.nullOutputStream());
+
+            log.info(
+                    "Loaded document from storage: documentId={}, storageUuid={}, bytes={}",
+                    message.documentId(),
+                    message.storageUuid(),
+                    bytesRead
+            );
+        }
     }
 }

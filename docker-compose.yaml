@@ -17,12 +17,21 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+      STORAGE_TYPE: ${STORAGE_TYPE}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_REGION: ${STORAGE_REGION}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
     depends_on:
       postgres:
         condition: service_healthy
       keycloak:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      filestore:
         condition: service_healthy
     networks:
       - paperless_network
@@ -58,8 +67,17 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
 
+      STORAGE_TYPE: ${STORAGE_TYPE}
+      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+      STORAGE_REGION: ${STORAGE_REGION}
+      STORAGE_BUCKET: ${STORAGE_BUCKET}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      filestore:
         condition: service_healthy
 
     healthcheck:
