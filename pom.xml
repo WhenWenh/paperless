@@ -21,6 +21,7 @@
         <module>share</module>
         <module>api</module>
         <module>ocr</module>
+        <module>genai</module>
     </modules>
 
     <dependencies>
