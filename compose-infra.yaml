@@ -69,6 +69,30 @@ services:
     networks:
       - paperless_network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.3
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks:
+      - paperless_network
+
   filestore:
     build:
       context: ./_filestore
@@ -100,6 +124,7 @@ volumes:
   keycloak-data:
   rabbitmq-data:
   filestore-data:
+  elasticsearch-data:
 
 networks:
   paperless_network:
