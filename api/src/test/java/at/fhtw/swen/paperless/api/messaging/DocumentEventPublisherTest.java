@@ -62,11 +62,13 @@ class DocumentEventPublisherTest {
 
     private DocumentUploadedMessage message() {
         return new DocumentUploadedMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
                 "Invoice",
                 "invoice.pdf",
                 "application/pdf",
-                UUID.randomUUID(),
-                UUID.randomUUID()
+                null
         );
     }
 }

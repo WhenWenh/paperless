@@ -74,6 +74,7 @@ class DocumentServiceImplTest {
         UUID storageId = UUID.randomUUID();
         Document saved = Document.builder()
                 .id(UUID.randomUUID())
+                .ownerId(ownerId)
                 .title("Title")
                 .originalFilename("file.pdf")
                 .contentType("application/pdf")
@@ -101,11 +102,13 @@ class DocumentServiceImplTest {
         verify(documentStorageService, never()).delete(any());
         verify(documentEventPublisher).publishDocumentUploaded(
                 new DocumentUploadedMessage(
+                        saved.getId(),
+                        storageId,
+                        ownerId,
                         "Title",
                         "file.pdf",
                         "application/pdf",
-                        saved.getId(),
-                        storageId
+                        null
                 )
         );
     }
