@@ -45,65 +45,65 @@ services:
     networks:
       - paperless_network
 
-#  ocr:
-#    build:
-#      context: .
-#      dockerfile: ocr/Dockerfile
-#
-#    restart: unless-stopped
-#
-#    environment:
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#      SPRING_RABBITMQ_PORT: 5672
-#      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
-#      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-#
-#    depends_on:
-#      rabbitmq:
-#        condition: service_healthy
-#
-#    healthcheck:
-#      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
-#      interval: 10s
-#      timeout: 5s
-#      retries: 5
-#
-#    volumes:
-#      - paperless-storage:/tmp/paperless
-#
-#    networks:
-#      - paperless_network
-
-  ocr-go:
+  ocr:
     build:
-      context: ./ocr-go
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ocr/Dockerfile
 
     restart: unless-stopped
 
     environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: "5672"
-
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
 
     depends_on:
       rabbitmq:
         condition: service_healthy
 
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 10s
 
     volumes:
-      - paperless-storage:/tmp/paperless:ro
+      - paperless-storage:/tmp/paperless
 
     networks:
       - paperless_network
+
+  # ocr-go:
+  #   build:
+  #     context: ./ocr-go
+  #     dockerfile: Dockerfile
+
+  #   restart: unless-stopped
+
+  #   environment:
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_PORT: "5672"
+
+  #     RABBITMQ_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  #   healthcheck:
+  #     test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+  #   volumes:
+  #     - paperless-storage:/tmp/paperless:ro
+
+  #   networks:
+  #     - paperless_network
 
   newman:
     build:

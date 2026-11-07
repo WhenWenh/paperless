@@ -9,6 +9,8 @@ COPY ocr/pom.xml ocr/pom.xml
 COPY share/pom.xml share/pom.xml
 COPY api/pom.xml api/pom.xml
 
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
+
 RUN ./mvnw dependency:go-offline -B
 
 COPY ocr/src ocr/src
