@@ -18,6 +18,14 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue ocrCompletedQueue() {
+        return new Queue(
+                QueueNames.OCR_COMPLETED_QUEUE,
+                true
+        );
+    }
+
+    @Bean
     public JacksonJsonMessageConverter jacksonJsonMessageConverter() {
         return new JacksonJsonMessageConverter();
     }
