@@ -1,0 +1,34 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: Paperless Indexing
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER}
+    password: ${RABBITMQ_PASSWORD}
+
+    listener:
+      simple:
+        auto-startup: ${INDEXING_LISTENER_AUTO_STARTUP:true}
+        acknowledge-mode: auto
+        default-requeue-rejected: false
+
+        retry:
+          enabled: true
+          max-retries: 2
+          initial-interval: 2s
+          multiplier: 2
+          max-interval: 10s
+
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS:http://elasticsearch:9200}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
