@@ -123,6 +123,41 @@ services:
   #   networks:
   #     - paperless_network
 
+  genai:
+    build:
+      context: .
+      dockerfile: genai/Dockerfile
+
+    restart: unless-stopped
+
+    environment:
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://localhost:8083/actuator/health"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+    networks:
+      - paperless_network
+
   newman:
     build:
       context: ./_postman
