@@ -23,4 +23,10 @@ public interface DocumentService {
     List<DocumentDto> getDocumentsByTag(String tagName);
 
     Optional<DocumentDto> updateDocumentTag(UUID id, UUID tagId);
+
+    List<DocumentDto> searchDocuments(
+            String query,
+            String tag,
+            boolean untagged
+    );
 }
