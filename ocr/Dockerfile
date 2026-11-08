@@ -6,6 +6,7 @@ COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
 COPY ocr/pom.xml ocr/pom.xml
+COPY genai/pom.xml genai/pom.xml
 COPY share/pom.xml share/pom.xml
 COPY api/pom.xml api/pom.xml
 
