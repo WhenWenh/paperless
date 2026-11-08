@@ -6,6 +6,8 @@ import at.fhtw.swen.paperless.share.messaging.OcrCompletedMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class DocumentIndexService {
@@ -13,6 +15,11 @@ public class DocumentIndexService {
     private final DocumentIndexRepository repository;
 
     public void index(OcrCompletedMessage message) {
+
+        Objects.requireNonNull(
+                message.documentId(),
+                "documentId must not be null"
+        );
 
         DocumentIndex index = new DocumentIndex(
                 message.documentId(),
