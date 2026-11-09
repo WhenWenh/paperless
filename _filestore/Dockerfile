@@ -1,17 +1,12 @@
-FROM golang:1.24-bookworm AS build
-
-ARG MINIO_VERSION=RELEASE.2025-07-23T15-54-02Z
-
-RUN CGO_ENABLED=0 go install github.com/minio/minio@${MINIO_VERSION}
-
 FROM debian:bookworm-slim
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /go/bin/minio /usr/local/bin/minio
+COPY --from=ghcr.io/librefs/librefs@sha256:707de0b1fa0ff7c83dd72ad4bcd8225302f06a4ce5278b7356700401e95004ab / /
 
-EXPOSE 9000 9001
+ENTRYPOINT ["/usr/bin/librefs"]
 
-ENTRYPOINT ["/usr/local/bin/minio"]
+HEALTHCHECK --interval=10s --timeout=5s --retries=10 --start-period=30s \
+    CMD curl -fs http://localhost:9000/minio/health/live || exit 1
