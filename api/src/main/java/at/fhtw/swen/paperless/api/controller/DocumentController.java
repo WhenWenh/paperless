@@ -107,6 +107,29 @@ public class DocumentController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<DocumentResponse>> searchDocuments(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String tag,
+            @RequestParam(defaultValue = "false") boolean untagged
+    ) {
+        if (tag != null && untagged) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<DocumentResponse> documents =
+                documentService.searchDocuments(
+                                query,
+                                tag,
+                                untagged
+                        )
+                        .stream()
+                        .map(this::toResponse)
+                        .toList();
+
+        return ResponseEntity.ok(documents);
+    }
+
     private DocumentResponse toResponse(DocumentDto dto) {
         return DocumentResponse.builder()
                 .id(dto.id())

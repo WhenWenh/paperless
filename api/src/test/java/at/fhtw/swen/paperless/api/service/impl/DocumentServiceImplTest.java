@@ -13,6 +13,7 @@ import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.mapper.DocumentMapper;
 import at.fhtw.swen.paperless.api.security.CurrentUser;
+import at.fhtw.swen.paperless.api.search.SearchService;
 import at.fhtw.swen.paperless.api.service.DocumentStorageService;
 import at.fhtw.swen.paperless.api.service.DocumentValidationService;
 import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
@@ -63,6 +64,9 @@ class DocumentServiceImplTest {
 
     private final MockMultipartFile file =
             new MockMultipartFile("file", "file.pdf", "application/pdf", new byte[]{1, 2, 3});
+
+    @Mock
+    private SearchService searchService;
 
     @InjectMocks
     private DocumentServiceImpl documentService;
@@ -386,5 +390,73 @@ class DocumentServiceImplTest {
         verify(documentRepository).save(any(Document.class));
         verify(documentStorageService, never()).delete(any());
         verify(documentRepository, never()).delete(any(Document.class));
+    }
+
+    @Test
+    void searchDocuments_shouldLoadOwnedSearchMatches() {
+        when(currentUser.id()).thenReturn(ownerId);
+        Document document = Document.builder().id(UUID.randomUUID()).build();
+        DocumentDto dto = DocumentDto.builder().id(document.getId()).build();
+        List<UUID> ids = List.of(document.getId());
+        when(searchService.search("Rechnung", ownerId)).thenReturn(ids);
+        when(documentRepository.findAllByOwnerIdAndIdIn(ownerId, ids))
+                .thenReturn(List.of(document));
+        when(documentMapper.toDto(document)).thenReturn(dto);
+
+        assertThat(documentService.searchDocuments("Rechnung", null, false))
+                .containsExactly(dto);
+        verify(documentRepository, never()).findAllByOwnerId(any());
+    }
+
+    @Test
+    void searchDocuments_withoutMatches_shouldReturnEmptyList() {
+        when(currentUser.id()).thenReturn(ownerId);
+        when(searchService.search("missing", ownerId)).thenReturn(List.of());
+        when(documentRepository.findAllByOwnerIdAndIdIn(ownerId, List.of()))
+                .thenReturn(List.of());
+
+        assertThat(documentService.searchDocuments("missing", null, false)).isEmpty();
+        verifyNoInteractions(documentMapper);
+        verify(documentRepository, never()).findAllByOwnerId(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.NullAndEmptySource
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"   "})
+    void searchDocuments_withoutQuery_shouldListOwnedDocuments(String query) {
+        when(currentUser.id()).thenReturn(ownerId);
+        Document document = Document.builder().id(UUID.randomUUID()).build();
+        DocumentDto dto = DocumentDto.builder().id(document.getId()).build();
+        when(documentRepository.findAllByOwnerId(ownerId)).thenReturn(List.of(document));
+        when(documentMapper.toDto(document)).thenReturn(dto);
+
+        assertThat(documentService.searchDocuments(query, null, false)).containsExactly(dto);
+        verifyNoInteractions(searchService);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void searchDocuments_shouldFilterSearchMatchesByTag(boolean untagged) {
+        when(currentUser.id()).thenReturn(ownerId);
+        Tag finance = new Tag();
+        finance.setName("Finance");
+        Tag other = new Tag();
+        other.setName("Other");
+        Document tagged = Document.builder().id(UUID.randomUUID()).tag(finance).build();
+        Document unrelated = Document.builder().id(UUID.randomUUID()).tag(other).build();
+        Document withoutTag = Document.builder().id(UUID.randomUUID()).build();
+        List<UUID> ids = List.of(tagged.getId(), unrelated.getId(), withoutTag.getId());
+        when(searchService.search("Rechnung", ownerId)).thenReturn(ids);
+        when(documentRepository.findAllByOwnerIdAndIdIn(ownerId, ids))
+                .thenReturn(List.of(tagged, unrelated, withoutTag));
+        Document expected = untagged ? withoutTag : tagged;
+        DocumentDto dto = DocumentDto.builder().id(expected.getId()).build();
+        when(documentMapper.toDto(expected)).thenReturn(dto);
+
+        assertThat(documentService.searchDocuments(
+                "Rechnung", untagged ? null : "finance", untagged
+        )).containsExactly(dto);
+        verify(documentMapper).toDto(expected);
+        verifyNoMoreInteractions(documentMapper);
     }
 }
