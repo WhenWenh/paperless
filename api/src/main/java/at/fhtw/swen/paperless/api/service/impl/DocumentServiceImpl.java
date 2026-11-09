@@ -153,11 +153,13 @@ public class DocumentServiceImpl implements DocumentService {
                 "Deleting document {}",
                 id
         );
-        Document document = documentRepository
-                .findByIdAndOwnerId(id, currentUser.id())
-                .orElseThrow(() -> new DocumentNotFoundException(id));
 
-        documentStorageService.delete(document.getStorageUuid());
+        Document document = findOwnedDocument(id);
+
+        documentStorageService.delete(
+                document.getStorageUuid()
+        );
+
         documentRepository.delete(document);
     }
 
@@ -240,6 +242,17 @@ public class DocumentServiceImpl implements DocumentService {
         return documents
                 .map(documentMapper::toDto)
                 .toList();
+    }
+
+    private Document findOwnedDocument(UUID id) {
+        return documentRepository
+                .findByIdAndOwnerId(
+                        id,
+                        currentUser.id()
+                )
+                .orElseThrow(() ->
+                        new DocumentNotFoundException(id)
+                );
     }
 
     @Override
