@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '@env/environment';
 
@@ -24,124 +24,85 @@ export interface UpdateDocumentTagRequest {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class DocumentService {
+  private readonly apiUrl = `${environment.apiUrl}/api/v1/documents`;
 
-  private readonly apiUrl =
-    `${environment.apiUrl}/api/v1/documents`;
+  constructor(private readonly http: HttpClient) {}
 
-  constructor(
-    private readonly http: HttpClient
-  ) {}
-
-
-  uploadDocument(
-    formData: FormData
-  ): Observable<DocumentResponse> {
-
-    return this.http.post<DocumentResponse>(
-      this.apiUrl,
-      formData
-    );
+  uploadDocument(formData: FormData): Observable<DocumentResponse> {
+    return this.http.post<DocumentResponse>(this.apiUrl, formData);
   }
 
-
-  getAllDocuments(
-    tag?: string | null
-  ): Observable<DocumentResponse[]> {
-
+  getAllDocuments(tag?: string | null): Observable<DocumentResponse[]> {
     if (tag !== undefined) {
-
-      return this.http.get<DocumentResponse[]>(
-        this.apiUrl,
-        {
-          params: {
-            tag: tag ?? ''
-          }
-        }
-      );
+      return this.http.get<DocumentResponse[]>(this.apiUrl, {
+        params: {
+          tag: tag ?? '',
+        },
+      });
     }
 
-    return this.http.get<DocumentResponse[]>(
-      this.apiUrl
-    );
+    return this.http.get<DocumentResponse[]>(this.apiUrl);
   }
 
-
-  getDocument(
-    id: string
-  ): Observable<DocumentResponse> {
-
-    return this.http.get<DocumentResponse>(
-      `${this.apiUrl}/${id}`
-    );
+  getDocument(id: string): Observable<DocumentResponse> {
+    return this.http.get<DocumentResponse>(`${this.apiUrl}/${id}`);
   }
 
-  updateDocumentTitle(
-    id: string,
-    title: string
-  ): Observable<DocumentResponse> {
+  updateDocumentTitle(id: string, title: string): Observable<DocumentResponse> {
     const request: UpdateDocumentTitleRequest = {
-      title
+      title,
     };
-    return this.http.put<DocumentResponse>(
-      `${this.apiUrl}/${id}`,
-      request
-    );
+    return this.http.put<DocumentResponse>(`${this.apiUrl}/${id}`, request);
   }
 
-  updateDocumentTag(
-    id: string,
-    tagId: string | null
-  ): Observable<DocumentResponse> {
-
+  updateDocumentTag(id: string, tagId: string | null): Observable<DocumentResponse> {
     const request: UpdateDocumentTagRequest = {
-      tagId
+      tagId,
     };
 
-    return this.http.put<DocumentResponse>(
-      `${this.apiUrl}/${id}/tag`,
-      request
-    );
+    return this.http.put<DocumentResponse>(`${this.apiUrl}/${id}/tag`, request);
   }
 
-  downloadDocument(
-    id: string
-  ): Observable<Blob> {
+  searchDocuments(
+    query?: string,
+    tag?: string,
+    untagged?: boolean,
+  ): Observable<DocumentResponse[]> {
+    let params = new HttpParams();
 
-    return this.http.get(
-      `${this.apiUrl}/${id}/content`,
-      {
-        responseType: 'blob'
-      }
-    );
+    if (query) {
+      params = params.set('query', query);
+    }
+
+    if (tag) {
+      params = params.set('tag', tag);
+    }
+
+    if (untagged) {
+      params = params.set('untagged', 'true');
+    }
+
+    return this.http.get<DocumentResponse[]>(`${this.apiUrl}/search`, { params });
   }
 
-  replaceDocumentContent(
-    id: string,
-    file: File
-  ): Observable<DocumentResponse> {
+  downloadDocument(id: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${id}/content`, {
+      responseType: 'blob',
+    });
+  }
 
+  replaceDocumentContent(id: string, file: File): Observable<DocumentResponse> {
     const formData = new FormData();
 
-    formData.append(
-      'file',
-      file
-    );
+    formData.append('file', file);
 
-    return this.http.put<DocumentResponse>(
-      `${this.apiUrl}/${id}/content`,
-      formData
-    );
+    return this.http.put<DocumentResponse>(`${this.apiUrl}/${id}/content`, formData);
   }
 
-  deleteDocument(
-    id: string
-  ): Observable<void> {
-
-    return this.http.delete<void>(
-      `${this.apiUrl}/${id}`
-    );
+  deleteDocument(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 }

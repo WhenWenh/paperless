@@ -1,0 +1,73 @@
+<div class="search">
+  <h1>Search</h1>
+
+  <div class="search-input">
+    <label for="document-search">
+      Search document content
+    </label>
+
+    <input
+      id="document-search"
+      type="search"
+      placeholder="Search documents..."
+      [value]="searchQuery()"
+      (input)="onSearchChange($event)">
+  </div>
+
+  <div class="tag-buttons">
+    <button
+      type="button"
+      *ngFor="let selection of selections()"
+      (click)="select(selection)"
+      [class.selected]="
+        selected().type === selection.type &&
+        selected().id === selection.id
+      ">
+      {{ selection.name }}
+    </button>
+  </div>
+
+  <p
+    *ngIf="loading()"
+    role="status">
+    Loading...
+  </p>
+
+  <p
+    *ngIf="!loading() && error()"
+    class="error"
+    role="alert">
+    {{ error() }}
+  </p>
+
+  <div
+    class="documents"
+    *ngIf="!loading() && !error()">
+
+    <a
+      class="document-row"
+      *ngFor="let document of documents()"
+      [routerLink]="['/document', document.id]">
+
+      <span class="title">
+        {{ document.title }}
+      </span>
+
+      <span
+        *ngIf="showTag()"
+        class="tag">
+        {{ document.tagName || 'No Tag' }}
+      </span>
+
+      <span class="filename">
+        {{ document.originalFilename }}
+      </span>
+    </a>
+
+    <p
+      *ngIf="documents().length === 0"
+      role="status">
+      No documents found.
+    </p>
+  </div>
+</div>

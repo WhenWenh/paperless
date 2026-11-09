@@ -5,6 +5,7 @@ import { DocumentComponent } from './features/document/document.component';
 import { TaggingComponent } from '@features/tagging/tagging.component';
 import { TagsComponent } from '@features/tags/tags.component';
 import { UploadComponent } from '@features/upload/upload.component';
+import { SearchComponent } from '@features/search/search.component';
 import { authGuard } from '@core/auth/auth.guard';
 
 export const routes: Routes = [
@@ -15,11 +16,12 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'document/:id', component: DocumentComponent },
+      { path: 'search', component: SearchComponent },
       { path: 'tagging', component: TaggingComponent },
       { path: 'tags', component: TagsComponent },
       { path: 'upload', component: UploadComponent },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
-    ]
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+    ],
   },
-  { path: '**', redirectTo: 'dashboard' }
+  { path: '**', redirectTo: 'dashboard' },
 ];
