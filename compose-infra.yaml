@@ -68,3 +68,86 @@ services:
       start_period: 90s
     networks:
       - paperless_network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.3
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fs 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 60s
+    networks:
+      - paperless_network
+
+## minio
+#  filestore:
+#    build:
+#      context: ./_filestore
+#    restart: unless-stopped
+#    command:
+#      - server
+#      - /data
+#      - --console-address
+#      - ":9001"
+#    environment:
+#      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+#      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+#    ports:
+#      - "127.0.0.1:9000:9000"
+#      - "127.0.0.1:9001:9001"
+#    volumes:
+#      - filestore-data:/data
+#    healthcheck:
+#      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/ready"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+#      start_period: 30s
+#    networks:
+#      - paperless_network
+
+## librefs
+  filestore:
+    build:
+      context: ./_filestore
+    container_name: paperless-filestore
+    restart: unless-stopped
+    command:
+      - server
+      - /data
+      - --console-address
+      - ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - filestore-data:/data
+    networks:
+      - paperless_network
+
+volumes:
+  paperless-pg-data:
+  keycloak-data:
+  rabbitmq-data:
+  filestore-data:
+  elasticsearch-data:
+
+networks:
+  paperless_network:

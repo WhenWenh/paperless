@@ -35,7 +35,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(DocumentController.class)
+@WebMvcTest(
+        controllers = DocumentController.class,
+        properties = "storage.type=filesystem"
+)
 @Import({SecurityConfig.class, JwtAuthenticationConverter.class})
 class DocumentControllerTest {
     @MockitoBean
@@ -315,5 +318,45 @@ class DocumentControllerTest {
                                 result.getResponse().getContentAsString()
                         ).doesNotContain("INTERNAL_DETAIL", "database-password")
                 );
+    }
+
+    @Test
+    void searchDocuments_shouldReturnMatchingDocument() throws Exception {
+        UUID id = UUID.randomUUID();
+        DocumentDto document = DocumentDto.builder().id(id).title("Search test")
+                .originalFilename("test.pdf").contentType("application/pdf").fileSize(100L).build();
+        when(documentService.searchDocuments("Rechnung", null, false))
+                .thenReturn(List.of(document));
+
+        mockMvc.perform(get("/api/v1/documents/search")
+                        .param("query", "Rechnung").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(id.toString()));
+    }
+
+    @Test
+    void searchDocuments_withoutMatches_shouldReturnEmptyList() throws Exception {
+        when(documentService.searchDocuments("missing", null, false)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/v1/documents/search")
+                        .param("query", "missing").with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void searchDocuments_withConflictingFilters_shouldReturn400() throws Exception {
+        mockMvc.perform(get("/api/v1/documents/search")
+                        .param("tag", "Finance").param("untagged", "true").with(jwt()))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(documentService);
+    }
+
+    @Test
+    void searchDocuments_withoutAuthentication_shouldReturn401() throws Exception {
+        mockMvc.perform(get("/api/v1/documents/search").param("query", "Rechnung"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(documentService);
     }
 }

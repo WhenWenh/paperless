@@ -5,6 +5,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -13,6 +14,11 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
+@ConditionalOnProperty(
+        name = "storage.type",
+        havingValue = "filesystem",
+        matchIfMissing = true
+)
 public class FileSystemDocumentStorageService
         implements DocumentStorageService {
 

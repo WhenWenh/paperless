@@ -21,7 +21,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(StatisticsController.class)
+@WebMvcTest(
+        controllers = StatisticsController.class,
+        properties = "storage.type=filesystem"
+)
 @Import({SecurityConfig.class, JwtAuthenticationConverter.class})
 class StatisticsControllerTest {
     @MockitoBean

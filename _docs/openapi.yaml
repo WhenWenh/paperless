@@ -107,6 +107,57 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/DocumentResponse'
+  /api/v1/documents/search:
+    get:
+      tags:
+        - Documents
+      summary: Search documents by OCR text
+      operationId: searchDocuments
+      description: >
+        Searches the authenticated user's documents by OCR text.
+        Allows one edit per search term.
+        Without a query, returns the user's documents subject to tag filters.
+        The tag and untagged=true filters cannot be combined.
+      parameters:
+        - name: query
+          in: query
+          required: false
+          description: Full-text search term with typo tolerance.
+          schema:
+            type: string
+          example: Rechnunh
+
+        - name: tag
+          in: query
+          required: false
+          description: Filter by tag name, ignoring case.
+          schema:
+            type: string
+          example: Finance
+
+        - name: untagged
+          in: query
+          required: false
+          description: Return only documents without a tag.
+          schema:
+            type: boolean
+            default: false
+
+      responses:
+        '200':
+          description: Matching documents, or an empty list if none match.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DocumentResponse'
+
+        '400':
+          description: The tag and untagged=true filters were combined.
+
+        '401':
+          $ref: '#/components/responses/Unauthorized'
   /api/v1/documents/{id}:
     get:
       tags:

@@ -1,7 +1,7 @@
 package at.fhtw.swen.paperless.api.messaging;
 
 import at.fhtw.swen.paperless.api.service.exception.OcrJobPublishException;
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 import at.fhtw.swen.paperless.share.QueueNames;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,11 +62,13 @@ class DocumentEventPublisherTest {
 
     private DocumentUploadedMessage message() {
         return new DocumentUploadedMessage(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
                 "Invoice",
                 "invoice.pdf",
                 "application/pdf",
-                UUID.randomUUID(),
-                UUID.randomUUID()
+                null
         );
     }
 }

@@ -4,6 +4,7 @@ import at.fhtw.swen.paperless.api.persistence.entity.Document;
 import at.fhtw.swen.paperless.api.persistence.entity.Tag;
 import at.fhtw.swen.paperless.api.persistence.repository.DocumentRepository;
 import at.fhtw.swen.paperless.api.persistence.repository.TagRepository;
+import at.fhtw.swen.paperless.api.search.SearchService;
 import at.fhtw.swen.paperless.api.service.DocumentService;
 import at.fhtw.swen.paperless.api.service.dto.DocumentDto;
 import at.fhtw.swen.paperless.api.service.exception.DocumentNotFoundException;
@@ -15,7 +16,7 @@ import at.fhtw.swen.paperless.api.service.dto.CreateDocumentCommand;
 import at.fhtw.swen.paperless.api.security.CurrentUser;
 
 import at.fhtw.swen.paperless.api.messaging.DocumentEventPublisher;
-import at.fhtw.swen.paperless.share.DocumentUploadedMessage;
+import at.fhtw.swen.paperless.share.messaging.DocumentUploadedMessage;
 
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
@@ -27,6 +28,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -43,6 +45,8 @@ public class DocumentServiceImpl implements DocumentService {
     private final CurrentUser currentUser;
 
     private final DocumentEventPublisher documentEventPublisher;
+
+    private final SearchService searchService;
 
     @Override
     public DocumentDto createDocument(
@@ -111,11 +115,15 @@ public class DocumentServiceImpl implements DocumentService {
         )) {
             documentEventPublisher.publishDocumentUploaded(
                     new DocumentUploadedMessage(
+                            saved.getId(),
+                            saved.getStorageUuid(),
+                            saved.getOwnerId(),
                             saved.getTitle(),
                             saved.getOriginalFilename(),
                             saved.getContentType(),
-                            saved.getId(),
-                            saved.getStorageUuid()
+                            saved.getTag() == null
+                                    ? null
+                                    : saved.getTag().getId()
                     )
             );
         }
@@ -145,11 +153,13 @@ public class DocumentServiceImpl implements DocumentService {
                 "Deleting document {}",
                 id
         );
-        Document document = documentRepository
-                .findByIdAndOwnerId(id, currentUser.id())
-                .orElseThrow(() -> new DocumentNotFoundException(id));
 
-        documentStorageService.delete(document.getStorageUuid());
+        Document document = findOwnedDocument(id);
+
+        documentStorageService.delete(
+                document.getStorageUuid()
+        );
+
         documentRepository.delete(document);
     }
 
@@ -188,6 +198,61 @@ public class DocumentServiceImpl implements DocumentService {
         return documents.stream()
                 .map(documentMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public List<DocumentDto> searchDocuments(
+            String query,
+            String tag,
+            boolean untagged
+    ) {
+        Stream<Document> documents;
+
+        if (query != null && !query.isBlank()) {
+            List<UUID> ids = searchService.search(
+                    query,
+                    currentUser.id()
+            );
+
+            documents = documentRepository
+                    .findAllByOwnerIdAndIdIn(
+                            currentUser.id(),
+                            ids
+                    )
+                    .stream();
+        } else {
+            documents = documentRepository
+                    .findAllByOwnerId(currentUser.id())
+                    .stream();
+        }
+
+        if (untagged) {
+            documents = documents.filter(
+                    document -> document.getTag() == null
+            );
+        } else if (tag != null && !tag.isBlank()) {
+            documents = documents.filter(
+                    document -> document.getTag() != null
+                            && document.getTag()
+                            .getName()
+                            .equalsIgnoreCase(tag)
+            );
+        }
+
+        return documents
+                .map(documentMapper::toDto)
+                .toList();
+    }
+
+    private Document findOwnedDocument(UUID id) {
+        return documentRepository
+                .findByIdAndOwnerId(
+                        id,
+                        currentUser.id()
+                )
+                .orElseThrow(() ->
+                        new DocumentNotFoundException(id)
+                );
     }
 
     @Override

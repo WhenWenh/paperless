@@ -17,11 +17,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 import java.util.UUID;
+import java.util.List;
+import at.fhtw.swen.paperless.api.search.SearchService;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@DataJpaTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+@DataJpaTest(properties = {
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "storage.type=filesystem"
+})
 class DocumentOwnershipTest {
     @Autowired private DocumentRepository documents;
     @Autowired private TagRepository tags;
@@ -29,6 +34,7 @@ class DocumentOwnershipTest {
     private final UUID owner = UUID.randomUUID();
     private final UUID otherOwner = UUID.randomUUID();
     private final DocumentStorageService storage = mock(DocumentStorageService.class);
+    private final SearchService searchService = mock(SearchService.class);
     private DocumentServiceImpl service;
     private Document ownDocument;
     private Document foreignDocument;
@@ -45,7 +51,8 @@ class DocumentOwnershipTest {
                 mock(DocumentValidationService.class),
                 tags,
                 user,
-                mock(DocumentEventPublisher.class)
+                mock(DocumentEventPublisher.class),
+                searchService
         );
 
         ownDocument = saveDocument(owner, "Own");
@@ -111,5 +118,23 @@ class DocumentOwnershipTest {
                 .originalFilename("test.pdf").contentType("application/pdf")
                 .fileSize(10L).storageUuid(UUID.randomUUID()).build();
         return documents.saveAndFlush(document);
+    }
+
+    @Test
+    void searchDocuments_shouldExcludeForeignAndMissingDocuments() {
+        when(searchService.search("Rechnung", owner)).thenReturn(List.of(
+                ownDocument.getId(), foreignDocument.getId(), UUID.randomUUID()
+        ));
+
+        assertThat(service.searchDocuments("Rechnung", null, false))
+                .extracting(dto -> dto.id())
+                .containsExactly(ownDocument.getId());
+    }
+
+    @Test
+    void searchDocuments_withoutMatches_shouldNotReturnOtherDocuments() {
+        when(searchService.search("missing", owner)).thenReturn(List.of());
+
+        assertThat(service.searchDocuments("missing", null, false)).isEmpty();
     }
 }

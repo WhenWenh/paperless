@@ -55,4 +55,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     long countDocumentsWithoutTag(
             UUID ownerId
     );
+
+    List<Document> findAllByOwnerIdAndIdIn(
+            UUID ownerId,
+            List<UUID> ids
+    );
 }
