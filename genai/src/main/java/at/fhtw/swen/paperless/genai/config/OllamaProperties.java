@@ -1,4 +1,10 @@
 package at.fhtw.swen.paperless.genai.config;
 
-public record OllamaProperties() {
+import org.springframework.boot.context.properties.ConfigurationProperties;
+
+@ConfigurationProperties(prefix = "genai.ollama")
+public record OllamaProperties(
+        String baseUrl,
+        String model
+) {
 }
