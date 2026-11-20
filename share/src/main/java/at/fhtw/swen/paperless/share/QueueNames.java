@@ -8,5 +8,8 @@ public final class QueueNames {
     public static final String OCR_COMPLETED_QUEUE =
             "document.ocr.completed";
 
+    public static final String SUMMARY_GENERATED_QUEUE =
+            "document.summary.generated";
+
     private QueueNames() {}
 }
