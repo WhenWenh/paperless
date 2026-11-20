@@ -12,13 +12,13 @@ spring:
     password: ${RABBITMQ_PASSWORD}
 
   elasticsearch:
-    uris: ${ELASTICSEARCH_URL:http://localhost:9200}
+    uris: http://elasticsearch:9200
 
 genai:
-  provider: ${GENAI_PROVIDER:ollama}
+  provider: ollama
 
   ollama:
-    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}
     model: ${OLLAMA_MODEL:qwen2.5:latest}
 
   gemini:
