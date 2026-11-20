@@ -15,7 +15,7 @@ spring:
     uris: http://elasticsearch:9200
 
 genai:
-  provider: ollama
+  provider: ${GENAI_PROVIDER:ollama}
 
   ollama:
     base-url: ${OLLAMA_BASE_URL:http://host.docker.internal:11434}

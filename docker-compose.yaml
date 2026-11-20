@@ -138,6 +138,15 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
 
+      GENAI_PROVIDER: ${GENAI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:latest}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -145,16 +154,10 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-qO-",
-          "http://localhost:8083/actuator/health"
-        ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/actuator/health" ]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 60s
 
     networks:
