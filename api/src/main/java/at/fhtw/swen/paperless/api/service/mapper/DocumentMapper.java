@@ -25,6 +25,7 @@ public class DocumentMapper extends AbstractMapper<Document, DocumentDto> {
                 .originalFilename(entity.getOriginalFilename())
                 .contentType(entity.getContentType())
                 .fileSize(entity.getFileSize())
+                .summary(entity.getSummary())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
                 .tagId(tagId)
@@ -39,6 +40,7 @@ public class DocumentMapper extends AbstractMapper<Document, DocumentDto> {
                 .originalFilename(dto.originalFilename())
                 .contentType(dto.contentType())
                 .fileSize(dto.fileSize())
+                .summary(dto.summary())
                 .build();
     }
 }
