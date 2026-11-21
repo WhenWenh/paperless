@@ -15,7 +15,8 @@ CREATE TABLE documents (
                            original_filename VARCHAR(512) NOT NULL,
                            content_type VARCHAR(127) NOT NULL,
                            file_size BIGINT NOT NULL DEFAULT 0,
-
+    -- Generated document summary (e.g. from GenAI processing)
+                           summary TEXT,
     -- UUID used as filename in the storage backend
                            storage_uuid UUID UNIQUE,
 
