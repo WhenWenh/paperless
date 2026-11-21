@@ -18,6 +18,14 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue summaryGeneratedQueue() {
+        return new Queue(
+                QueueNames.SUMMARY_GENERATED_QUEUE,
+                true
+        );
+    }
+
+    @Bean
     public JacksonJsonMessageConverter jacksonJsonMessageConverter() {
         return new JacksonJsonMessageConverter();
     }
