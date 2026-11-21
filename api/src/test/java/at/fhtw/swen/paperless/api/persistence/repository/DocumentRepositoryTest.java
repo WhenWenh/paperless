@@ -5,6 +5,10 @@ import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+
+import java.time.Instant;
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest(properties = {
@@ -14,6 +18,44 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DocumentRepositoryTest {
     @Autowired private DocumentRepository documentRepository;
     @Autowired private EntityManager entityManager;
+
+    @Test
+    void updateSummaryById_shouldPersistSummaryForOnlyTheMatchingDocument() {
+        UUID ownerId = UUID.randomUUID();
+        Document target = documentRepository.saveAndFlush(document(ownerId, "Invoice"));
+        Document other = documentRepository.saveAndFlush(document(ownerId, "Other document"));
+        Instant updatedAt = Instant.parse("2026-11-21T12:00:00Z");
+
+        int updated = documentRepository.updateSummaryById(
+                target.getId(), "Die Rechnung beträgt 120 Euro.", updatedAt
+        );
+        entityManager.clear();
+
+        assertThat(updated).isEqualTo(1);
+        Document found = documentRepository.findById(target.getId()).orElseThrow();
+        assertThat(found.getSummary()).isEqualTo("Die Rechnung beträgt 120 Euro.");
+        assertThat(found.getTitle()).isEqualTo("Invoice");
+        assertThat(found.getUpdatedAt()).isEqualTo(updatedAt);
+        assertThat(documentRepository.findById(other.getId()).orElseThrow().getSummary())
+                .isNull();
+    }
+
+    @Test
+    void updateSummaryById_shouldReturnZeroForMissingDocument() {
+        assertThat(documentRepository.updateSummaryById(
+                UUID.randomUUID(), "Summary", Instant.now()
+        )).isZero();
+    }
+
+    private Document document(UUID ownerId, String title) {
+        return Document.builder()
+                .ownerId(ownerId)
+                .title(title)
+                .originalFilename("test.pdf")
+                .contentType("application/pdf")
+                .fileSize(100L)
+                .build();
+    }
 
     @Test
     void saveAndFind_shouldPersistMetadataAndGenerateIdAndTimestamps() {
