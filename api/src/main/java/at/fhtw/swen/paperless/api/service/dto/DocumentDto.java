@@ -12,6 +12,7 @@ public record DocumentDto(
         String originalFilename,
         String contentType,
         long fileSize,
+        String summary,
         Instant createdAt,
         Instant updatedAt,
         UUID tagId,

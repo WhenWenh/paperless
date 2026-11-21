@@ -202,7 +202,7 @@ class DocumentServiceImplTest {
     void getDocumentsByTag_shouldReturnDocuments() {
         when(currentUser.id()).thenReturn(ownerId);
         Document doc = new Document();
-        DocumentDto dto = new DocumentDto(UUID.randomUUID(), "T", "f", "c", 1L, null, null, null, "Finance");
+        DocumentDto dto = new DocumentDto(UUID.randomUUID(), "T", "f", "c", 1L, null, null, null, null, "Finance");
 
         when(documentRepository.findByOwnerIdAndTag_Name(ownerId, "Finance")).thenReturn(List.of(doc));
         when(documentMapper.toDto(doc)).thenReturn(dto);
@@ -220,7 +220,7 @@ class DocumentServiceImplTest {
         when(documentRepository.findByIdAndOwnerId(id, ownerId)).thenReturn(Optional.of(doc));
         when(documentRepository.save(doc)).thenReturn(doc);
         when(documentMapper.toDto(doc)).thenReturn(
-                new DocumentDto(id, "T", "f", "c", 1L, null, null, null, null));
+                new DocumentDto(id, "T", "f", "c", 1L, null, null, null, null, null));
 
         assertThat(documentService.updateDocumentTag(id, null)).isPresent();
         assertThat(doc.getTag()).isNull();
@@ -239,7 +239,7 @@ class DocumentServiceImplTest {
         when(tagRepository.findById(tagId)).thenReturn(Optional.of(tag));
         when(documentRepository.save(doc)).thenReturn(doc);
         when(documentMapper.toDto(doc)).thenReturn(
-                new DocumentDto(id, "T", "f", "c", 1L, null, null, tagId, null));
+                new DocumentDto(id, "T", "f", "c", 1L, null, null, null, tagId, null));
 
         assertThat(documentService.updateDocumentTag(id, tagId)).isPresent();
         assertThat(doc.getTag()).isSameAs(tag);

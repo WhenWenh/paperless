@@ -6,6 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -59,5 +64,19 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
     List<Document> findAllByOwnerIdAndIdIn(
             UUID ownerId,
             List<UUID> ids
+    );
+
+    @Modifying
+    @Transactional
+    @Query("""
+        UPDATE Document d
+        SET d.summary = :summary,
+            d.updatedAt = :updatedAt
+        WHERE d.id = :documentId
+        """)
+    int updateSummaryById(
+            @Param("documentId") UUID documentId,
+            @Param("summary") String summary,
+            @Param("updatedAt") Instant updatedAt
     );
 }

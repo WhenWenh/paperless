@@ -29,4 +29,6 @@ public interface DocumentService {
             String tag,
             boolean untagged
     );
+
+    boolean updateSummary(UUID documentId, String summary);
 }

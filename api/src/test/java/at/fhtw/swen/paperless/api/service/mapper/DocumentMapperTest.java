@@ -29,6 +29,7 @@ class DocumentMapperTest {
                 .originalFilename("test.pdf")
                 .contentType("application/pdf")
                 .fileSize(12345L)
+                .summary("Invoice summary")
                 .createdAt(createdAt)
                 .updatedAt(updatedAt)
                 .build();
@@ -42,6 +43,7 @@ class DocumentMapperTest {
         assertThat(dto.originalFilename()).isEqualTo("test.pdf");
         assertThat(dto.contentType()).isEqualTo("application/pdf");
         assertThat(dto.fileSize()).isEqualTo(12345L);
+        assertThat(dto.summary()).isEqualTo("Invoice summary");
         assertThat(dto.createdAt()).isEqualTo(createdAt);
         assertThat(dto.updatedAt()).isEqualTo(updatedAt);
     }
@@ -55,6 +57,7 @@ class DocumentMapperTest {
                 .originalFilename("test.pdf")
                 .contentType("application/pdf")
                 .fileSize(12345L)
+                .summary("Invoice summary")
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();
@@ -67,6 +70,7 @@ class DocumentMapperTest {
         assertThat(entity.getOriginalFilename()).isEqualTo("test.pdf");
         assertThat(entity.getContentType()).isEqualTo("application/pdf");
         assertThat(entity.getFileSize()).isEqualTo(12345L);
+        assertThat(entity.getSummary()).isEqualTo("Invoice summary");
 
         // toEntity intentionally does not map persistence fields
         assertThat(entity.getId()).isNull();

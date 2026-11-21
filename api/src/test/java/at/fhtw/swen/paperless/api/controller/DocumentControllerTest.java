@@ -160,7 +160,7 @@ class DocumentControllerTest {
     }
 
     @Test
-    void getDocument_shouldReturnDocument() throws Exception {
+    void getDocument_shouldReturnDocumentWithoutSummary() throws Exception {
         UUID id = UUID.randomUUID();
 
         when(documentService.getDocument(id)).thenReturn(Optional.of(
@@ -175,7 +175,28 @@ class DocumentControllerTest {
         mockMvc.perform(get("/api/v1/documents/" + id).with(jwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(id.toString()))
-                .andExpect(jsonPath("$.title").value("Title"));
+                .andExpect(jsonPath("$.title").value("Title"))
+                .andExpect(jsonPath("$.summary").doesNotExist());
+    }
+
+    @Test
+    void getDocument_shouldReturnSummaryWhenAvailable() throws Exception {
+        UUID id = UUID.randomUUID();
+
+        when(documentService.getDocument(id)).thenReturn(Optional.of(
+                DocumentDto.builder()
+                        .id(id)
+                        .title("Title")
+                        .originalFilename("file.pdf")
+                        .contentType("application/pdf")
+                        .fileSize(123L)
+                        .summary("Die Rechnung beträgt 120 Euro.")
+                        .build()));
+
+        mockMvc.perform(get("/api/v1/documents/" + id).with(jwt()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.summary").value("Die Rechnung beträgt 120 Euro."));
     }
 
     @Test
@@ -189,7 +210,7 @@ class DocumentControllerTest {
     void getDocumentsByTag_shouldReturnDocuments() throws Exception {
         UUID tagId = UUID.randomUUID();
         when(documentService.getDocumentsByTag("Finance")).thenReturn(List.of(
-                new DocumentDto(UUID.randomUUID(), "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
+                new DocumentDto(UUID.randomUUID(), "Title", "file.pdf", "application/pdf", 123L, null, null, null, tagId, "Finance")));
 
         mockMvc.perform(get("/api/v1/documents").with(jwt()).param("tag", "Finance"))
                 .andExpect(status().isOk())
@@ -202,7 +223,7 @@ class DocumentControllerTest {
         UUID id = UUID.randomUUID();
         UUID tagId = UUID.randomUUID();
         when(documentService.updateDocumentTag(eq(id), eq(tagId))).thenReturn(Optional.of(
-                new DocumentDto(id, "Title", "file.pdf", "application/pdf", 123L, null, null, tagId, "Finance")));
+                new DocumentDto(id, "Title", "file.pdf", "application/pdf", 123L, null, null, null, tagId, "Finance")));
 
         mockMvc.perform(put("/api/v1/documents/" + id + "/tag").with(jwt())
                         .contentType(MediaType.APPLICATION_JSON)
