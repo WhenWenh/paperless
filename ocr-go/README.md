@@ -7,7 +7,7 @@ BMP, GIF und WebP gehen direkt an Tesseract. Die Upload-API stellt derzeit
 PDF-Aufträge in die Queue.
 
 Der Worker sendet Text und Metadaten an `document.ocr.completed`. Der
-bestehende `genai`-Dienst verwendet dieses Ergebnis für Suche und
+`genai-go`-Dienst verwendet dieses Ergebnis für Suche und
 Zusammenfassung. Der Worker bestätigt den Auftrag, sobald RabbitMQ die
 Veröffentlichung bestätigt hat.
 
@@ -23,7 +23,7 @@ Veröffentlichung bestätigt hat.
 
 ```bash
 docker compose up -d --build ocr-go
-docker compose logs -f ocr-go genai
+docker compose logs -f ocr-go genai-go
 ```
 
 Der Service übernimmt die `STORAGE_*`-Variablen aus der Projektkonfiguration.
