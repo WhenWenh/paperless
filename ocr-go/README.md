@@ -1,13 +1,39 @@
 # OCR-Worker (Go)
 
-Empfängt PDF-Aufträge aus der RabbitMQ-Queue `document.uploaded`,
-protokolliert die Dokument-ID und bestätigt erfolgreich verarbeitete
-Nachrichten. Eine echte OCR-Engine ist noch nicht integriert.
+Empfängt Aufträge aus `document.uploaded` und lädt die Datei anhand der
+`storageUuid` aus libreFS (S3) oder aus `/tmp/paperless`. Der Worker rendert
+PDF-Seiten mit Poppler und erkennt ihren Text mit Tesseract. PNG, JPEG, TIFF,
+BMP, GIF und WebP gehen direkt an Tesseract. Die Upload-API stellt derzeit
+PDF-Aufträge in die Queue.
+
+Der Worker sendet Text und Metadaten an `document.ocr.completed`. Der
+bestehende `genai`-Dienst verwendet dieses Ergebnis für Suche und
+Zusammenfassung. Der Worker bestätigt den Auftrag, sobald RabbitMQ die
+Veröffentlichung bestätigt hat.
 
 ## Voraussetzungen
 
-- Go **1.27.2 oder neuer**, entsprechend `go.mod`
+- Go **1.26 oder neuer**, entsprechend `go.mod`
 - Docker und Docker Compose für den Containerbetrieb
+- Für lokalen OCR-Betrieb `pdftoppm` und `tesseract` mit englischen Sprachdaten
+
+## Betrieb mit Docker Compose
+
+`ocr-go` ist in der Compose-Datei aktiv. Start im Projekt-Root.
+
+```bash
+docker compose up -d --build ocr-go
+docker compose logs -f ocr-go genai
+```
+
+Der Service übernimmt die `STORAGE_*`-Variablen aus der Projektkonfiguration.
+Für S3 sind `STORAGE_ACCESS_KEY` und `STORAGE_SECRET_KEY` erforderlich. Der
+Healthcheck ist im Container unter `http://localhost:8082/health` erreichbar.
+
+Beim Wechsel zuerst den laufenden OCR-Worker stoppen. Dann seinen
+Serviceblock in `docker-compose.yaml` auskommentieren, den anderen
+Serviceblock einkommentieren und diesen mit `docker compose up -d --build`
+starten. Die beiden Worker lesen aus derselben RabbitMQ-Queue.
 
 Installierte Go-Version prüfen:
 

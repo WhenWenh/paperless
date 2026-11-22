@@ -11,7 +11,7 @@ Paperless ist ein modulares Dokumentenmanagementsystem im Rahmen von SWEN3. Doku
 | Datenbank | PostgreSQL 17 |
 | Messaging | RabbitMQ 4.3.2 |
 | Authentifizierung | Keycloak 26.3, OpenID Connect, JWT |
-| Worker | Java/Spring Boot: OCR und Indexierung |
+| Worker | Go für OCR, Java/Spring Boot für Indexierung und Zusammenfassung |
 | OCR | Tesseract, Poppler (`pdftoppm`) |
 | Objektspeicher | S3-Schnittstelle mit libreFS, einem MinIO-Fork |
 | Suchindex | Elasticsearch 9.4.3 |
@@ -48,7 +48,7 @@ paperless/
 - Uploads hinsichtlich Titel, Dateigröße und Content-Type validieren.
 - Für PDF-Uploads Nachrichten in der Queue `document.uploaded` veröffentlichen.
 - Originaldateien unter eindeutigen Objektschlüsseln im S3-Speicher ablegen und den Originaldateinamen als Metadatum erhalten.
-- PDF-Dateien im Java-OCR-Worker aus dem Objektspeicher laden und seitenweise mit Tesseract erkennen.
+- PDF-Dateien im OCR-Worker aus dem Objektspeicher laden und seitenweise mit Tesseract erkennen.
 - OCR-Ergebnisse über `document.ocr.completed` an den Indexierungs-Worker übergeben.
 - OCR-Texte im Elasticsearch-Index `documents` unter der Dokument-ID speichern und bei erneuter Indexierung derselben ID aktualisieren.
 - Dokumentinhalte über die Suchseite abfragen und Treffer mit Titel und Link zur Detailseite anzeigen.
@@ -91,7 +91,7 @@ Browser ──> Angular / Nginx ──> Spring-Boot-API ──> PostgreSQL
 
 ### Eigenständige Worker-Anwendungen
 
-`ocr` und `genai` sind eigene Spring-Boot-Anwendungen mit separaten Dockerfiles. Das Modul `share` enthält die gemeinsamen Nachrichtenmodelle und Queue-Namen. Der Compose-Service `ocr` übernimmt die Texterkennung; der Service `genai` übernimmt die Indexierung der OCR-Ergebnisse. RabbitMQ verbindet die Verarbeitungsschritte asynchron.
+`ocr-go` übernimmt in Docker Compose die Texterkennung. Der Java-OCR-Service `ocr` steht auskommentiert als Alternative in der Compose-Datei. Der Java-Service `genai` indexiert die OCR-Ergebnisse und erstellt Zusammenfassungen. RabbitMQ verbindet die Verarbeitungsschritte asynchron. Das Modul `share` enthält die gemeinsamen Java-Nachrichtenmodelle und Queue-Namen.
 
 ### Tesseract und PDF-Konvertierung
 
@@ -166,7 +166,7 @@ Bei Änderungen der Ports müssen gegebenenfalls auch Frontend-OIDC-Konfiguratio
 ### Logs und Beenden
 
 ```bash
-docker compose logs -f api ocr genai filestore elasticsearch
+docker compose logs -f api ocr-go genai filestore elasticsearch
 docker compose down
 ```
 
@@ -233,13 +233,13 @@ Alternativ direkt aus PowerShell oder Bash:
 docker compose exec -T newman newman run /etc/newman/postman.json -e /etc/newman/docker-environment.json
 ```
 
-Die Collection meldet den Testbenutzer bei Keycloak an und prüft anschließend API-Anfragen. Import, Testdaten und einzelne Testordner sind in der [Postman-Dokumentation](_postman/README.md) beschrieben. Für einen manuellen Queue-Nachweis ist im aktuellen Compose-Setup der Service `ocr` zu stoppen und anschließend wieder zu starten.
+Die Collection meldet den Testbenutzer bei Keycloak an und prüft anschließend API-Anfragen. Import, Testdaten und einzelne Testordner sind in der [Postman-Dokumentation](_postman/README.md) beschrieben. Für einen manuellen Queue-Nachweis ist im aktuellen Compose-Setup der Service `ocr-go` zu stoppen und anschließend wieder zu starten.
 
 ## Verarbeitung und Suche prüfen
 
 1. Über die Weboberfläche eine PDF mit einem gut lesbaren Begriff hochladen, beispielsweise `HelloWorld.pdf` mit dem Inhalt `Hello World`.
 2. Die Dokument-ID aus der Upload-Antwort beziehungsweise der Detailseite notieren.
-3. Mit `docker compose logs -f api ocr genai` die Verarbeitung verfolgen. Der OCR-Worker protokolliert den Empfang und das Laden des Dokuments sowie die erfolgreiche Verarbeitung. Der Indexierungs-Worker meldet `Successfully indexed document` mit derselben Dokument-ID.
+3. Mit `docker compose logs -f api ocr-go genai` die Verarbeitung verfolgen. Der OCR-Worker protokolliert den Empfang, das Laden des Dokuments und die Veröffentlichung des Ergebnisses. Der Indexierungs-Worker meldet `Successfully indexed document` mit derselben Dokument-ID.
 4. Nach abgeschlossener Indexierung die Suchseite öffnen und nach `Hello` suchen. Der Treffer zeigt den Dokumenttitel und führt zur Detailseite.
 5. Mit `No Tag` oder einem konkreten Tag die Ergebnisse filtern. Das Leeren des Suchfelds zeigt die eigenen Dokumente entsprechend der gewählten Filter an.
 

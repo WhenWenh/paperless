@@ -1,109 +1,117 @@
 package worker
 
 import (
-	"context"       // Ermöglicht Abbruch beim Herunterfahren.
-	"encoding/json" // Entspricht hier dem JSON-Konverter.
-	"errors"        // Einfache Fehler erzeugen.
-	"fmt"           // Fehler mit zusätzlichem Kontext umschließen.
-	"log/slog"      // Logging.
-	"time"          // Pause vor erneuter Zustellung.
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"regexp"
+	"strings"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
+
 func DecodeMessage(body []byte) (DocumentUploadedMessage, error) {
 	var message DocumentUploadedMessage
-
-	// &message übergibt die Adresse der Struktur.
-	// Unmarshal kann dadurch deren Felder befüllen.
 	if err := json.Unmarshal(body, &message); err != nil {
-		// Keine vollständige Nachricht im Fehlertext ausgeben.
 		return message, errors.New("invalid OCR message JSON")
 	}
-
-	if message.DocumentID == "" || message.StorageUUID == "" {
-		return message, errors.New(
-			"documentId and storageUuid are required",
-		)
+	if !uuidPattern.MatchString(message.DocumentID) || !uuidPattern.MatchString(message.StorageUUID) {
+		return message, errors.New("documentId and storageUuid must be UUIDs")
 	}
-
-	if message.ContentType != "application/pdf" {
-		return message, errors.New("expected application/pdf")
+	for _, id := range []*string{message.OwnerID, message.TagID} {
+		if id != nil {
+			if !uuidPattern.MatchString(*id) {
+				return message, errors.New("ownerId and tagId must be UUIDs when present")
+			}
+			*id = strings.ToLower(*id)
+		}
 	}
-
+	message.DocumentID = strings.ToLower(message.DocumentID)
+	message.StorageUUID = strings.ToLower(message.StorageUUID)
 	return message, nil
 }
 
-func processDocument(message DocumentUploadedMessage) error {
-	slog.Info(
-		"Start processing OCR job",
-		"documentTitle", message.Title,
-		"documentId", message.DocumentID,
-		"documentName", message.Filename,
-		"storageUuid", message.StorageUUID,
-		"contentType", message.ContentType,
-	)
+type processor struct {
+	openDocument func(context.Context, string) (io.ReadCloser, error)
+	publish      func(context.Context, OcrCompletedMessage) error
+}
 
-	// TODO: PDF laden und OCR-Engine aufrufen.
+func (p processor) processDocument(ctx context.Context, message DocumentUploadedMessage) error {
+	document, err := p.openDocument(ctx, message.StorageUUID)
+	if err != nil {
+		return fmt.Errorf("load document: %w", err)
+	}
+	defer document.Close()
 
+	slog.Info("Loaded document for OCR", "documentId", message.DocumentID, "storageUuid", message.StorageUUID)
+	text, err := extractText(ctx, document, message.ContentType)
+	if err != nil {
+		return err
+	}
+
+	result := OcrCompletedMessage{
+		DocumentID:       message.DocumentID,
+		StorageUUID:      message.StorageUUID,
+		OwnerID:          message.OwnerID,
+		Title:            message.Title,
+		OriginalFilename: message.Filename,
+		TagID:            message.TagID,
+		ContentType:      message.ContentType,
+		Text:             text,
+	}
+	if err := p.publish(ctx, result); err != nil {
+		return fmt.Errorf("%w: %w", errPublishResult, err)
+	}
+	slog.Info("Published OCR result", "documentId", message.DocumentID, "storageUuid", message.StorageUUID, "bytes", len(text))
 	return nil
 }
 
-func HandleDelivery(
-	ctx context.Context,
-	delivery amqp.Delivery,
-) error {
-	message, processingErr := DecodeMessage(delivery.Body)
-
-	if processingErr == nil {
-		slog.Info(
-			"OCR job received",
-			"documentId", message.DocumentID,
-			"storageUuid", message.StorageUUID,
-			"redelivered", delivery.Redelivered,
-		)
-
-		// Ergebnis der Verarbeitung merken.
-		processingErr = processDocument(message)
+func HandleDelivery(ctx context.Context, delivery amqp.Delivery, process func(context.Context, DocumentUploadedMessage) error) error {
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
-	if processingErr != nil {
-		slog.Error(
-			"OCR job failed; returning message to queue",
-			"documentId", message.DocumentID,
-			"storageUuid", message.StorageUUID,
-			"error", processingErr,
-		)
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-
-		case <-time.After(2 * time.Second):
-			// Nach der Pause weiter zur Rückgabe der Nachricht.
+	message, err := DecodeMessage(delivery.Body)
+	if err != nil {
+		slog.Warn("Rejecting malformed OCR job", "error", err)
+		if err := delivery.Nack(false, false); err != nil {
+			return fmt.Errorf("reject malformed OCR job: %w", err)
 		}
-
-		// false: nur diese Nachricht.
-		// true: erneut in die Queue stellen.
-		if err := delivery.Nack(false, true); err != nil {
-			return fmt.Errorf("request redelivery: %w", err)
-		}
-
-		// Der Verarbeitungsfehler wurde behandelt.
-		// Das bedeutet NICHT, dass die OCR erfolgreich war.
 		return nil
 	}
 
-	// Verarbeitung erfolgreich: einzelne Nachricht bestätigen.
+	log := slog.With("documentId", message.DocumentID, "storageUuid", message.StorageUUID, "contentType", message.ContentType)
+	log.Info("Received OCR job", "redelivered", delivery.Redelivered)
+	if extensionFor(message.ContentType) == "" {
+		log.Warn("Skipping unsupported document")
+	} else if err := process(ctx, message); err != nil {
+		log.Error("OCR job failed", "error", err)
+		if errors.Is(err, errPublishResult) {
+			// Closing the connection requeues the unacknowledged job and discards any late publisher confirm.
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(2 * time.Second):
+		}
+		if err := delivery.Nack(false, true); err != nil {
+			return fmt.Errorf("request OCR job redelivery: %w", err)
+		}
+		return nil
+	}
+
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := delivery.Ack(false); err != nil {
 		return fmt.Errorf("acknowledge OCR job: %w", err)
 	}
-
-	slog.Info(
-		"OCR placeholder completed; acknowledgement sent",
-		"documentId", message.DocumentID,
-		"storageUuid", message.StorageUUID,
-	)
-
 	return nil
 }

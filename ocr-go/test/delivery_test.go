@@ -3,9 +3,11 @@ package worker_test
 import (
 	"context"
 	"errors"
-	amqp "github.com/rabbitmq/amqp091-go"
 	"paperless/ocr-go/internal/worker"
+	"strings"
 	"testing"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const validBody = `{"documentId":"217df5bc-661c-4c0b-843f-93bdd1273e94","storageUuid":"1e195006-626f-4437-b913-9b8358607ef9","contentType":"application/pdf"}`
@@ -39,7 +41,10 @@ func (a *recordingAcknowledger) Reject(uint64, bool) error {
 }
 
 func TestDecodeAdditionalInvalidMessages(t *testing.T) {
-	for _, body := range []string{`{"documentId":"id","contentType":"application/pdf"}`, `{"documentId":"id","storageUuid":"file","contentType":"image/png"}`, `{"documentId":"id","storageUuid":"file"}`} {
+	for _, body := range []string{
+		`{"documentId":"id","contentType":"application/pdf"}`,
+		strings.Replace(validBody, "1e195006-626f-4437-b913-9b8358607ef9", "../outside", 1),
+	} {
 		if _, err := worker.DecodeMessage([]byte(body)); err == nil {
 			t.Fatalf("accepted invalid body: %s", body)
 		}
@@ -49,15 +54,20 @@ func TestDecodeAdditionalInvalidMessages(t *testing.T) {
 func TestHandleDeliveryAcknowledgements(t *testing.T) {
 	failure := errors.New("connection closed")
 	for _, tc := range []struct {
-		name, body      string
-		ackErr, nackErr error
-		cancel          bool
+		name, body                  string
+		ackErr, nackErr, processErr error
+		cancel                      bool
+		wantProcess, wantAck        bool
+		wantRequeue                 bool
 	}{
-		{name: "success", body: validBody},
-		{name: "ack failure", body: validBody, ackErr: failure},
-		{name: "invalid message requeued", body: `{`},
+		{name: "success", body: validBody, wantProcess: true, wantAck: true},
+		{name: "supported image", body: strings.Replace(validBody, "application/pdf", "IMAGE/PNG", 1), wantProcess: true, wantAck: true},
+		{name: "skip unsupported type", body: strings.Replace(validBody, "application/pdf", "text/plain", 1), wantAck: true},
+		{name: "ack failure", body: validBody, ackErr: failure, wantProcess: true, wantAck: true},
+		{name: "reject malformed message", body: `{`},
 		{name: "nack failure", body: `{`, nackErr: failure},
-		{name: "shutdown during retry", body: `{`, cancel: true},
+		{name: "processing failure requeued", body: validBody, processErr: failure, wantProcess: true, wantRequeue: true},
+		{name: "shutdown before processing", body: validBody, cancel: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.Background())
@@ -66,7 +76,20 @@ func TestHandleDeliveryAcknowledgements(t *testing.T) {
 				cancel()
 			}
 			ack := &recordingAcknowledger{ackErr: tc.ackErr, nackErr: tc.nackErr}
-			err := worker.HandleDelivery(ctx, amqp.Delivery{Body: []byte(tc.body), DeliveryTag: 42, Acknowledger: ack})
+			processed := false
+			ack.onAck = func() {
+				if processed != tc.wantProcess {
+					t.Fatal("ACK before required processing")
+				}
+			}
+			err := worker.HandleDelivery(ctx, amqp.Delivery{Body: []byte(tc.body), DeliveryTag: 42, Acknowledger: ack},
+				func(context.Context, worker.DocumentUploadedMessage) error {
+					processed = true
+					return tc.processErr
+				})
+			if processed != tc.wantProcess {
+				t.Fatalf("processed = %v, want %v", processed, tc.wantProcess)
+			}
 			if tc.cancel {
 				if !errors.Is(err, context.Canceled) || ack.acks != 0 || ack.nacks != 0 {
 					t.Fatalf("cancellation: %v %+v", err, ack)
@@ -80,13 +103,13 @@ func TestHandleDeliveryAcknowledgements(t *testing.T) {
 			if !errors.Is(err, wantErr) {
 				t.Fatalf("error: %v, want %v", err, wantErr)
 			}
-			if tc.body == validBody {
+			if tc.wantAck {
 				if ack.acks != 1 || ack.nacks != 0 {
 					t.Fatal("successful processing must only ACK")
 				}
 			} else {
-				if ack.acks != 0 || ack.nacks != 1 || !ack.requeue {
-					t.Fatal("invalid processing must only requeue")
+				if ack.acks != 0 || ack.nacks != 1 || ack.requeue != tc.wantRequeue {
+					t.Fatalf("unexpected acknowledgement: %+v", ack)
 				}
 			}
 			if ack.tag != 42 || ack.multiple {

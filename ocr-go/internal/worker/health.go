@@ -21,8 +21,7 @@ func StartHealthServer(
 	// HTTP-Router anlegen.
 	mux := http.NewServeMux()
 
-	// Handler für GET /health registrieren.
-	mux.HandleFunc("/health", func(
+	health := func(
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
@@ -42,7 +41,9 @@ func StartHealthServer(
 		// Ohne vorherigen Fehlerstatus wird HTTP 200 gesendet.
 		// _ ignoriert die Anzahl geschriebener Bytes.
 		_, _ = writer.Write([]byte(`{"status":"UP"}`))
-	})
+	}
+	mux.HandleFunc("/health", health)
+	mux.HandleFunc("/actuator/health", health)
 
 	// HTTP-Server konfigurieren.
 	server := &http.Server{
