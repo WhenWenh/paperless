@@ -50,6 +50,9 @@ export class DocumentComponent implements OnInit {
   readonly tagError = signal<string | null>(null);
   readonly tagValidationError = signal<string | null>(null);
 
+  readonly refreshingSummary = signal(false);
+  readonly summaryError = signal<string | null>(null);
+
   validationError = signal<string | null>(null);
   serverError = signal<string | null>(null);
   readonly error = signal('');
@@ -91,6 +94,34 @@ export class DocumentComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  /**
+   * The summary is produced asynchronously by the GenAI worker, so a
+   * document opened right after upload usually has none yet. Reloading
+   * the document picks it up without a full page reload.
+   */
+  refreshSummary(): void {
+    const doc = this.document();
+
+    if (!doc || this.refreshingSummary()) {
+      return;
+    }
+
+    this.summaryError.set(null);
+    this.refreshingSummary.set(true);
+
+    this.documentService
+      .getDocument(doc.id)
+      .pipe(finalize(() => this.refreshingSummary.set(false)))
+      .subscribe({
+        next: updated => {
+          this.document.set(updated);
+        },
+        error: () => {
+          this.summaryError.set('Could not refresh the summary.');
+        }
+      });
   }
 
   private loadTags(): void {

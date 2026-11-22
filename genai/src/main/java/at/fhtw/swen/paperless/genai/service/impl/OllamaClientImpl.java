@@ -1,6 +1,7 @@
 package at.fhtw.swen.paperless.genai.service.impl;
 
 import at.fhtw.swen.paperless.genai.service.GenaiClient;
+import at.fhtw.swen.paperless.genai.service.exception.GenaiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -72,7 +73,7 @@ public class OllamaClientImpl implements GenaiClient {
             }
         }
 
-        throw new IllegalStateException(
+        throw new GenaiException(
                 "Ollama generation failed after "
                         + MAX_ATTEMPTS
                         + " attempts",

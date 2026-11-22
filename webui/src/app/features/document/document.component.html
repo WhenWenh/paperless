@@ -121,6 +121,28 @@
     <dd>{{ doc.updatedAt | date:'dd.MM.yyyy, HH:mm' }}</dd>
   </dl>
 
+  <section class="summary" aria-labelledby="summary-heading">
+    <h3 id="summary-heading">Summary</h3>
+
+    @if (doc.summary) {
+      <p class="summary-text">{{ doc.summary }}</p>
+    } @else {
+      <p class="summary-pending">
+        No summary available yet. Summaries are generated automatically in
+        the background once the document text has been recognised.
+      </p>
+
+      <button type="button" class="refresh-summary"
+        [disabled]="refreshingSummary()" (click)="refreshSummary()">
+        {{ refreshingSummary() ? 'Checking...' : 'Check again' }}
+      </button>
+    }
+
+    @if (summaryError()) {
+      <p class="error" role="alert">{{ summaryError() }}</p>
+    }
+  </section>
+
   <div class="delete-actions">
     <button type="button" class="delete-icon"
       aria-label="Delete document" title="Delete document"
