@@ -1,6 +1,7 @@
 package at.fhtw.swen.paperless.genai.service.impl;
 
 import at.fhtw.swen.paperless.genai.service.GenaiClient;
+import at.fhtw.swen.paperless.genai.service.exception.GenaiException;
 import com.google.genai.Client;
 import com.google.genai.types.GenerateContentResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +66,7 @@ public class GeminiClientImpl implements GenaiClient {
             }
         }
 
-        throw new IllegalStateException(
+        throw new GenaiException(
                 "Gemini generation failed after "
                         + MAX_ATTEMPTS
                         + " attempts",

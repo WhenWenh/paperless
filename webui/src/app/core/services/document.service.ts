@@ -9,6 +9,7 @@ export interface DocumentResponse {
   originalFilename: string;
   contentType: string;
   fileSize: number;
+  summary: string | null;
   createdAt: string;
   updatedAt: string;
   tagId: string | null;
