@@ -11,7 +11,7 @@ Paperless ist ein modulares Dokumentenmanagementsystem im Rahmen von SWEN3. Doku
 | Datenbank | PostgreSQL 17 |
 | Messaging | RabbitMQ 4.3.2 |
 | Authentifizierung | Keycloak 26.3, OpenID Connect, JWT |
-| Worker | Go für OCR, Java/Spring Boot für Indexierung und Zusammenfassung |
+| Worker | Go für OCR, Indexierung und Zusammenfassung |
 | OCR | Tesseract, Poppler (`pdftoppm`) |
 | Objektspeicher | S3-Schnittstelle mit libreFS, einem MinIO-Fork |
 | Suchindex | Elasticsearch 9.4.3 |
@@ -25,7 +25,8 @@ paperless/
 ├── api/                   # REST-API, Services, Persistenz und Security
 ├── share/                 # Gemeinsame Java-Nachrichten und Queue-Konstanten
 ├── ocr/                   # Java-OCR-Worker mit S3-Zugriff und Tesseract
-├── genai/                 # Java-Indexierungs-Worker für Elasticsearch
+├── genai/                 # Java-Worker für Indexierung und Zusammenfassungen
+├── genai-go/              # Go-Worker mit Ollama- und Gemini-Anbindung
 ├── ocr-go/                # Separates Go-Worker-Modul mit eigenen Tests
 ├── _filestore/            # Dockerfile für den S3-kompatiblen Objektspeicher
 ├── webui/                 # Angular-Frontend und Nginx-Konfiguration
@@ -71,7 +72,7 @@ Browser ──> Angular / Nginx ──> Spring-Boot-API ──> PostgreSQL
                                       RabbitMQ: document.ocr.completed
                                                     │
                                                     v
-                                         Indexierungs-Worker (genai)
+                                         Indexierungs-Worker (genai-go)
                                                     │
                                                     v
                                                Elasticsearch
@@ -91,7 +92,7 @@ Browser ──> Angular / Nginx ──> Spring-Boot-API ──> PostgreSQL
 
 ### Eigenständige Worker-Anwendungen
 
-`ocr-go` übernimmt in Docker Compose die Texterkennung. Der Java-OCR-Service `ocr` steht auskommentiert als Alternative in der Compose-Datei. Der Java-Service `genai` indexiert die OCR-Ergebnisse und erstellt Zusammenfassungen. RabbitMQ verbindet die Verarbeitungsschritte asynchron. Das Modul `share` enthält die gemeinsamen Java-Nachrichtenmodelle und Queue-Namen.
+`ocr-go` übernimmt in Docker Compose die Texterkennung. [`genai-go`](genai-go/README.md) indexiert die OCR-Ergebnisse und erstellt Zusammenfassungen mit Ollama oder Gemini. Die Java-Worker `ocr` und `genai` stehen auskommentiert als Alternativen in der Compose-Datei. RabbitMQ verbindet die Verarbeitungsschritte asynchron. Das Modul `share` enthält die gemeinsamen Java-Nachrichtenmodelle und Queue-Namen.
 
 ### Tesseract und PDF-Konvertierung
 
@@ -166,7 +167,7 @@ Bei Änderungen der Ports müssen gegebenenfalls auch Frontend-OIDC-Konfiguratio
 ### Logs und Beenden
 
 ```bash
-docker compose logs -f api ocr-go genai filestore elasticsearch
+docker compose logs -f api ocr-go genai-go filestore elasticsearch
 docker compose down
 ```
 
@@ -239,7 +240,7 @@ Die Collection meldet den Testbenutzer bei Keycloak an und prüft anschließend 
 
 1. Über die Weboberfläche eine PDF mit einem gut lesbaren Begriff hochladen, beispielsweise `HelloWorld.pdf` mit dem Inhalt `Hello World`.
 2. Die Dokument-ID aus der Upload-Antwort beziehungsweise der Detailseite notieren.
-3. Mit `docker compose logs -f api ocr-go genai` die Verarbeitung verfolgen. Der OCR-Worker protokolliert den Empfang, das Laden des Dokuments und die Veröffentlichung des Ergebnisses. Der Indexierungs-Worker meldet `Successfully indexed document` mit derselben Dokument-ID.
+3. Mit `docker compose logs -f api ocr-go genai-go` die Verarbeitung verfolgen. Der OCR-Worker protokolliert den Empfang, das Laden des Dokuments und die Veröffentlichung des Ergebnisses. Der Indexierungs-Worker meldet `Successfully indexed document` mit derselben Dokument-ID.
 4. Nach abgeschlossener Indexierung die Suchseite öffnen und nach `Hello` suchen. Der Treffer zeigt den Dokumenttitel und führt zur Detailseite.
 5. Mit `No Tag` oder einem konkreten Tag die Ergebnisse filtern. Das Leeren des Suchfelds zeigt die eigenen Dokumente entsprechend der gewählten Filter an.
 
