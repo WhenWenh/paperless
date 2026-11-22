@@ -8,11 +8,17 @@ import (
 )
 
 type Config struct {
-	RabbitHost     string
-	RabbitPort     string
-	RabbitUser     string
-	RabbitPassword string
-	HealthAddress  string
+	RabbitHost       string
+	RabbitPort       string
+	RabbitUser       string
+	RabbitPassword   string
+	HealthAddress    string
+	StorageType      string
+	StorageEndpoint  string
+	StorageRegion    string
+	StorageBucket    string
+	StorageAccessKey string
+	StorageSecretKey string
 }
 
 func LoadConfig() (Config, error) {
@@ -25,7 +31,13 @@ func LoadConfig() (Config, error) {
 		RabbitUser:     os.Getenv("RABBITMQ_USER"),
 		RabbitPassword: os.Getenv("RABBITMQ_PASSWORD"),
 
-		HealthAddress: ":8082",
+		HealthAddress:    ":8082",
+		StorageType:      envOrDefault("STORAGE_TYPE", "s3"),
+		StorageEndpoint:  envOrDefault("STORAGE_ENDPOINT", "http://filestore:9000"),
+		StorageRegion:    envOrDefault("STORAGE_REGION", "us-east-1"),
+		StorageBucket:    envOrDefault("STORAGE_BUCKET", "paperless"),
+		StorageAccessKey: os.Getenv("STORAGE_ACCESS_KEY"),
+		StorageSecretKey: os.Getenv("STORAGE_SECRET_KEY"),
 	}
 
 	if config.RabbitUser == "" || config.RabbitPassword == "" {

@@ -56,18 +56,55 @@ services:
     networks:
       - paperless_network
 
-  ocr:
-    build:
-      context: .
-      dockerfile: ocr/Dockerfile
+  # Activate only one OCR worker at a time. Both consume document.uploaded.
+  # ocr:
+  #   build:
+  #     context: .
+  #     dockerfile: ocr/Dockerfile
 
+  #   restart: unless-stopped
+
+  #   environment:
+  #     SPRING_RABBITMQ_HOST: rabbitmq
+  #     SPRING_RABBITMQ_PORT: 5672
+  #     SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
+  #     SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+  #     STORAGE_TYPE: ${STORAGE_TYPE}
+  #     STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+  #     STORAGE_REGION: ${STORAGE_REGION}
+  #     STORAGE_BUCKET: ${STORAGE_BUCKET}
+  #     STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+  #     STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #     filestore:
+  #       condition: service_healthy
+
+  #   healthcheck:
+  #     test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  #   volumes:
+  #     - paperless-storage:/tmp/paperless
+
+  #   networks:
+  #     - paperless_network
+
+  ocr-go:
+    build:
+      context: ./ocr-go
     restart: unless-stopped
 
     environment:
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: 5672
-      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
 
       STORAGE_TYPE: ${STORAGE_TYPE}
       STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
@@ -83,47 +120,17 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
     volumes:
-      - paperless-storage:/tmp/paperless
+      - paperless-storage:/tmp/paperless:ro
 
     networks:
       - paperless_network
-
-  # ocr-go:
-  #   build:
-  #     context: ./ocr-go
-  #     dockerfile: Dockerfile
-
-  #   restart: unless-stopped
-
-  #   environment:
-  #     RABBITMQ_HOST: rabbitmq
-  #     RABBITMQ_PORT: "5672"
-
-  #     RABBITMQ_USER: ${RABBITMQ_USER}
-  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-
-  #   healthcheck:
-  #     test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
-
-  #   volumes:
-  #     - paperless-storage:/tmp/paperless:ro
-
-  #   networks:
-  #     - paperless_network
 
   genai:
     build:
