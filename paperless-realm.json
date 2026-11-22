@@ -32,6 +32,22 @@
       ]
     },
     {
+      "clientId": "paperless-mobile",
+      "name": "Paperless Mobile App",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "paperlessmobile://*",
+        "exp://*"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
       "clientId": "paperless-postman",
       "name": "Paperless Postman Tests",
       "enabled": true,

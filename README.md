@@ -272,3 +272,11 @@ Die fachlichen API-Endpunkte erfordern Authentifizierung. `/health` ist öffentl
 - [Datenbankschema](init.sql)
 - [Sprint-Details](_docs/sprint-details.yaml)
 
+
+## Mobile-App
+
+Eine Smartphone-App (Expo / React Native) liegt in [`mobile/`](mobile/README.md).
+Installation, Emulator-Setup und der Keycloak-Client `paperless-mobile` sind dort
+beschrieben. Nach Änderungen an `paperless-realm.json` muss das Keycloak-Volume
+neu erstellt werden (`docker compose down -v`) oder der Client manuell angelegt
+werden.
