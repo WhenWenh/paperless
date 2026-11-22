@@ -83,7 +83,10 @@ export default function DocumentDetailScreen() {
     ]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+    >
       {actionError ? (
         <Text accessibilityRole="alert" style={styles.error}>
           {actionError}

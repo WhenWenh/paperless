@@ -85,7 +85,10 @@ export default function UploadScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={styles.container}
+      contentInsetAdjustmentBehavior="automatic"
+    >
       <Button title="Take photo" variant="secondary" onPress={() => void takePhoto()} disabled={uploading} />
       <Button title="Choose file" variant="secondary" onPress={() => void pickFile()} disabled={uploading} />
       {file ? (
