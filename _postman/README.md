@@ -49,11 +49,11 @@ Der vollständige Lauf enthält Cleanup für die erzeugten Dokumente. Ein Lauf n
 Die Collection prüft HTTP-Antworten. Für den separaten Queue-Nachweis alle Consumer stoppen und währenddessen keine anderen Uploads ausführen:
 
 ```bash
-docker compose stop ocr
+docker compose stop ocr-go
 docker compose exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
 bash tests-newman.sh --folder Authentication --folder "OCR Testing"
 docker compose exec rabbitmq rabbitmqctl list_queues name messages_ready messages_unacknowledged consumers
-docker compose start ocr
+docker compose start ocr-go
 ```
 
 Bei `consumers = 0` soll `document.uploaded` nach dem OCR-Lauf genau eine bereite Nachricht mehr enthalten als vorher. Der Newman-Service hängt deshalb nicht vom OCR-Worker ab. Ein vollständiger CRUD-Lauf erzeugt weitere PDF-Aufträge und eignet sich nicht für diesen exakten Vergleich.

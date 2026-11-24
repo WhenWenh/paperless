@@ -49,3 +49,4 @@ coverage.html
 /ocr-go/bin/
 /ocr-go/ocr-worker
 /ocr-go/ocr-worker.exe
+/genai-go/bin/

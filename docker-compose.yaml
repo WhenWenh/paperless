@@ -56,6 +56,7 @@ services:
     networks:
       - paperless_network
 
+  # Activate only one OCR worker at a time. Both consume document.uploaded.
   ocr:
     build:
       context: .
@@ -94,37 +95,44 @@ services:
     networks:
       - paperless_network
 
-  # ocr-go:
-  #   build:
-  #     context: ./ocr-go
-  #     dockerfile: Dockerfile
+#  ocr-go:
+#    build:
+#      context: ./ocr-go
+#    restart: unless-stopped
+#
+#    environment:
+#      RABBITMQ_HOST: rabbitmq
+#      RABBITMQ_PORT: "5672"
+#      RABBITMQ_USER: ${RABBITMQ_USER}
+#      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+#
+#      STORAGE_TYPE: ${STORAGE_TYPE}
+#      STORAGE_ENDPOINT: ${STORAGE_ENDPOINT}
+#      STORAGE_REGION: ${STORAGE_REGION}
+#      STORAGE_BUCKET: ${STORAGE_BUCKET}
+#      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY}
+#      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY}
+#
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#      filestore:
+#        condition: service_healthy
+#
+#    healthcheck:
+#      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#      start_period: 10s
+#
+#    volumes:
+#      - paperless-storage:/tmp/paperless:ro
+#
+#    networks:
+#      - paperless_network
 
-  #   restart: unless-stopped
-
-  #   environment:
-  #     RABBITMQ_HOST: rabbitmq
-  #     RABBITMQ_PORT: "5672"
-
-  #     RABBITMQ_USER: ${RABBITMQ_USER}
-  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-
-  #   healthcheck:
-  #     test: [ "CMD", "wget", "-qO-", "http://localhost:8082/health" ]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
-  #     start_period: 10s
-
-  #   volumes:
-  #     - paperless-storage:/tmp/paperless:ro
-
-  #   networks:
-  #     - paperless_network
-
+  # Activate only one GenAI worker at a time. Both consume document.ocr.completed.
   genai:
     build:
       context: .
@@ -138,6 +146,15 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
 
+      GENAI_PROVIDER: ${GENAI_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:latest}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -145,20 +162,51 @@ services:
         condition: service_healthy
 
     healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-qO-",
-          "http://localhost:8083/actuator/health"
-        ]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8083/actuator/health" ]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
       start_period: 60s
 
     networks:
       - paperless_network
+
+#  genai-go:
+#    build:
+#      context: ./genai-go
+#    restart: unless-stopped
+#
+#    environment:
+#      RABBITMQ_HOST: rabbitmq
+#      RABBITMQ_PORT: "5672"
+#      RABBITMQ_USER: ${RABBITMQ_USER}
+#      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+#      ELASTICSEARCH_URL: http://elasticsearch:9200
+#
+#      GENAI_PROVIDER: ${GENAI_PROVIDER:-ollama}
+#      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+#      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:latest}
+#      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+#      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+#
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
+#
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#      elasticsearch:
+#        condition: service_healthy
+#
+#    healthcheck:
+#      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#      start_period: 10s
+#
+#    networks:
+#      - paperless_network
 
   newman:
     build:

@@ -330,3 +330,17 @@ dd:first-of-type {
 .tag-form .new-tag {
   display: contents;
 }
+
+.summary {
+  margin-top: 1.5rem;
+}
+
+.summary-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.summary-pending {
+  color: var(--color-muted);
+  font-style: italic;
+}

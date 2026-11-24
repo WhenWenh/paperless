@@ -451,7 +451,12 @@ components:
           type: string
         fileSize:
           type: integer
-          format: int64
+          format:
+        summary:
+          type:
+            - string
+            - 'null'
+          description: Generated summary, if available.
         createdAt:
           type: string
           format: date-time

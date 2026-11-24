@@ -6,6 +6,7 @@ import (
 	"fmt"      // Fehler mit Kontext.
 	"log/slog" // Logging.
 	"net/http"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -19,6 +20,10 @@ type rabbitChannel interface {
 	QueueDeclare(string, bool, bool, bool, bool, amqp.Table) (amqp.Queue, error)
 	Qos(int, int, bool) error
 	Consume(string, string, bool, bool, bool, bool, amqp.Table) (<-chan amqp.Delivery, error)
+	Confirm(bool) error
+	NotifyReturn(chan amqp.Return) chan amqp.Return
+	NotifyPublish(chan amqp.Confirmation) chan amqp.Confirmation
+	PublishWithContext(context.Context, string, string, bool, bool, amqp.Publishing) error
 	Close() error
 	IsClosed() bool
 }
@@ -45,6 +50,13 @@ func runWorkerWith(ctx context.Context, config Config,
 	dial func(string) (rabbitConnection, error),
 	startHealth func(string, func() bool) (*http.Server, <-chan error, error),
 ) error {
+	storageCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	openDocument, err := openStorage(storageCtx, config)
+	cancel()
+	if err != nil {
+		return err
+	}
+
 	// Verbindung zu RabbitMQ herstellen.
 	connection, err := dial(config.RabbitURL())
 	if err != nil {
@@ -62,6 +74,18 @@ func runWorkerWith(ctx context.Context, config Config,
 		return fmt.Errorf("open RabbitMQ channel: %w", err)
 	}
 	defer channel.Close()
+
+	publisherChannel, err := connection.Channel()
+	if err != nil {
+		return fmt.Errorf("open RabbitMQ publisher channel: %w", err)
+	}
+	defer publisherChannel.Close()
+
+	publish, err := newResultPublisher(publisherChannel)
+	if err != nil {
+		return err
+	}
+	jobProcessor := processor{openDocument: openDocument, publish: publish}
 
 	// Entspricht new Queue(QueueNames.DOCUMENT_UPLOAD_QUEUE, true).
 	queue, err := channel.QueueDeclare(
@@ -101,7 +125,7 @@ func runWorkerWith(ctx context.Context, config Config,
 
 		// Funktion wird bei jedem Healthcheck aufgerufen.
 		func() bool {
-			return !connection.IsClosed() && !channel.IsClosed()
+			return !connection.IsClosed() && !channel.IsClosed() && !publisherChannel.IsClosed()
 		},
 	)
 	if err != nil {
@@ -138,7 +162,7 @@ func runWorkerWith(ctx context.Context, config Config,
 			}
 
 			// Entspricht dem Aufruf deiner receive(...)-Methode.
-			if err := HandleDelivery(ctx, delivery); err != nil {
+			if err := HandleDelivery(ctx, delivery, jobProcessor.processDocument); err != nil {
 				// Angeforderter Stopp ist kein Betriebsfehler.
 				if ctx.Err() != nil {
 					return nil

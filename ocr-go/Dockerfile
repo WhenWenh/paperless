@@ -1,4 +1,6 @@
-FROM golang:1-alpine AS build
+FROM golang:1.26-alpine AS build
+
+ENV GOTOOLCHAIN=local
 
 WORKDIR /src
 
@@ -12,7 +14,11 @@ RUN go test ./...
 
 RUN CGO_ENABLED=0 go build -trimpath -o /out/ocr-worker ./cmd/worker
 
-FROM alpine:3
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates poppler-utils tesseract-ocr tesseract-ocr-eng wget \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

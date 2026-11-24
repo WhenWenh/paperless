@@ -137,6 +137,7 @@ public class DocumentController {
                 .originalFilename(dto.originalFilename())
                 .contentType(dto.contentType())
                 .fileSize(dto.fileSize())
+                .summary(dto.summary())
                 .createdAt(dto.createdAt())
                 .updatedAt(dto.updatedAt())
                 .tagId(dto.tagId())

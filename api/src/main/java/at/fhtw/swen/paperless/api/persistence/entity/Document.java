@@ -39,6 +39,9 @@ public class Document {
     @Column(name = "file_size", nullable = false)
     private long fileSize;
 
+    @Column(name = "summary", columnDefinition = "text")
+    private String summary;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
