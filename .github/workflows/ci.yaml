@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ocr-go/go.mod
+          cache-dependency-path: |
+            ocr-go/go.sum
+            genai-go/go.sum
+      - name: Go OCR prüfen
+        run: go vet ./...
+        working-directory: ocr-go
+      - name: Go GenAI prüfen
+        run: go vet ./...
+        working-directory: genai-go
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: Web-UI-Formatierung prüfen
+        run: npm ci && npx prettier --check src
+        working-directory: webui
+      - name: Mobile-App-Typen prüfen
+        run: npm ci && npm run typecheck
+        working-directory: mobile
+
+  test-java:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - run: bash ./mvnw --batch-mode test
+
+  test-go:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [ocr-go, genai-go]
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - run: go test ./...
+
+  test-webui:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: webui
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test -- --watch=false
+
+  test-mobile:
+    needs: lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test -- --ci
